@@ -120,6 +120,7 @@ requirements:
     - {{native}}openblas                 # [win]
 
   run:
+    - _r-mutex 1.* anacondar_1
     - llvm-openmp >=4.0.1                # [osx]
     - readline 7.*                       # [not win]
     - ncurses 6.0.*                      # [not win]
