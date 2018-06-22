@@ -448,6 +448,7 @@ Darwin() {
       mv libRblas.dylib libRblas.dylib.reference
       mv libRlapack.dylib libRlapack.dylib.reference
       cp ../../libblas.dylib libRblas.dylib
+      ln -s ../../libopenblasp-r0.2.20.dylib libopenblas.dylib
       cp ../../liblapack.dylib libRlapack.dylib
     popd
 
