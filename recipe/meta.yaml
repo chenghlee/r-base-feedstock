@@ -127,6 +127,8 @@ requirements:
 
   run:
     - _r-mutex 1.* anacondar_1
+    # Needed by R CMD javareconf
+    - make                               # [not win]
     - {{ compiler('fortran') }}          # [not win]
     - {{ compiler('cxx') }}              # [not win]
     - {{ compiler('c') }}                # [not win]
