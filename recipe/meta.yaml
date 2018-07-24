@@ -83,6 +83,7 @@ requirements:
     - {{posix}}autoconf
     - {{posix}}automake-wrapper          # [win]
     - {{posix}}automake                  # [not win]
+    - make                               # [not win]
   host:
     # This is a hack, strong run_exports should cause this to be added
     - llvm-openmp >=4.0.1                # [osx]
