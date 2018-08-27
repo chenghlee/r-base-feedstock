@@ -54,6 +54,9 @@ Linux() {
     # and activate scripts now call 'R CMD javareconf'.
     unset JAVA_HOME
 
+    export CPPFLAGS="${CPPFLAGS} -Wl,-rpath-link,${PREFIX}/lib"
+    export LDFLAGS="${LDFLAGS} -Wl,-rpath-link,${PREFIX}/lib"
+
     mkdir -p ${PREFIX}/lib
     # Tricky libuuid resolution issues against CentOS6's libSM. I may need to add some symbols to our libuuid library.
     # Works for configure:
