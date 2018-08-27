@@ -444,11 +444,20 @@ Darwin() {
     # https://github.com/luisspuerto/homebrew-core/blob/r-3.4.4/Formula/r.rb
     # Backup the old libR{blas,lapack}.dylib files and replace them with OpenBLAS
     pushd ${PREFIX}/lib/R/lib
-      mv libRblas.dylib libRblas.dylib.reference
-      mv libRlapack.dylib libRlapack.dylib.reference
+      # Need to ignore libopenblas run-exports if we keep these around:
+      # mv libRblas.dylib libRblas.dylib.reference
+      # mv libRlapack.dylib libRlapack.dylib.reference
       cp ../../libblas.dylib libRblas.dylib
-      ln -s ../../libopenblasp-r0.2.20.dylib libopenblas.dylib
       cp ../../liblapack.dylib libRlapack.dylib
+      ${INSTALL_NAME_TOOL} -id libRblas.dylib libRblas.dylib
+      ${INSTALL_NAME_TOOL} -change @rpath/libopenblas.dylib @rpath/R/lib/libRblas.dylib libR.dylib
+      ${INSTALL_NAME_TOOL} -id libRlapack.dylib libRlapack.dylib
+    popd
+    pushd ${PREFIX}/lib/R/modules
+      ${INSTALL_NAME_TOOL} -change @rpath/libopenblas.dylib @rpath/R/lib/libRblas.dylib lapack.so
+    popd
+    pushd ${PREFIX}/lib/R/library/stats/libs
+      ${INSTALL_NAME_TOOL} -change @rpath/libopenblas.dylib @rpath/R/lib/libRblas.dylib stats.so
     popd
 
     pushd ${PREFIX}/lib/R/etc
