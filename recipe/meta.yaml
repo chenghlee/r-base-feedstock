@@ -28,7 +28,7 @@ source:
 
 build:
   merge_build_host: True  # [win]
-  number: 0
+  number: 1
   rpaths:
     - lib/R/lib/
     - lib/
@@ -51,6 +51,8 @@ build:
   # at all (otherwise Matrix.so ends up with a
   # DT_NEEDED of libopenblas.so and cannot be used
   # against any old libRblas.so)
+  ignore_run_exports:
+    - libopenblas
 
 requirements:
   build:
@@ -121,7 +123,7 @@ requirements:
     - {{native}}libxml2                  # [not win]
     - {{native}}libssh2                  # [not win]
     - {{native}}krb5                     # [not win]
-    - {{native}}openblas                 # [linux or osx]
+    - {{native}}libopenblas              # [linux or osx]
     - {{native}}openblas                 # [win]
 
   run:
