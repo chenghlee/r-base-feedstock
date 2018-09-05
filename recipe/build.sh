@@ -9,26 +9,7 @@ if [[ "${CXXFLAGS}" =~ $re ]]; then
   export CXXFLAGS="${BASH_REMATCH[1]}${BASH_REMATCH[2]}"
 fi
 
-re2='(.*[[:space:]])\-I.*[^[:space:]]*(.*)'
-if [[ "${CPPFLAGS}" =~ $re2 ]]; then
-  export CPPFLAGS="${BASH_REMATCH[1]}${BASH_REMATCH[2]}"
-fi
-# if [[ "${CFLAGS}" =~ $re2 ]]; then
-#   export CFLAGS="${BASH_REMATCH[1]}${BASH_REMATCH[2]}"
-# fi
-re3='(.*[[:space:]])\-L.*[^[:space:]]*(.*)'
-if [[ "${CPPFLAGS}" =~ $re3 ]]; then
-  export CPPFLAGS="${BASH_REMATCH[1]}${BASH_REMATCH[2]}"
-fi
-# if [[ "${CFLAGS}" =~ $re3 ]]; then
-#   export CFLAGS="${BASH_REMATCH[1]}${BASH_REMATCH[2]}"
-# fi
-# if [[ "${LDFLAGS}" =~ $re3 ]]; then
-#   export LDFLAGS="${BASH_REMATCH[1]}${BASH_REMATCH[2]}"
-# fi
-
-# Without this, dependency scanning fails (but with it CDT libuuid / Xt fails to link
-# which we hack around with config.site)
+# Without this, dependency scanning fails.
 export CPPFLAGS="${CPPFLAGS} -I$PREFIX/include"
 
 export TCL_CONFIG=${PREFIX}/lib/tclConfig.sh
@@ -45,7 +26,6 @@ export TK_LIBRARY=${PREFIX}/lib/tk8.6
 [[ -n ${LD} ]] && export LD=$(basename ${LD})
 [[ -n ${RANLIB} ]] && export RANLIB=$(basename ${RANLIB})
 [[ -n ${STRIP} ]] && export STRIP=$(basename ${STRIP})
-export OBJC=${CC}
 
 Linux() {
     # If lib/R/etc/javaconf ends up with anything other than ~autodetect~
@@ -54,25 +34,7 @@ Linux() {
     # and activate scripts now call 'R CMD javareconf'.
     unset JAVA_HOME
 
-    export CPPFLAGS="${CPPFLAGS} -Wl,-rpath-link,${PREFIX}/lib"
-    export LDFLAGS="${LDFLAGS} -Wl,-rpath-link,${PREFIX}/lib"
-
     mkdir -p ${PREFIX}/lib
-    # Tricky libuuid resolution issues against CentOS6's libSM. I may need to add some symbols to our libuuid library.
-    # Works for configure:
-    # . /opt/conda/bin/activate /home/rdonnelly/r-base-bld/_build_env
-    # x86_64-conda_cos6-linux-gnu-cc -o conftest -L/home/rdonnelly/r-base-bld/_build_env/x86_64-conda_cos6-linux-gnu/sysroot/usr/lib64 conftest.c -lXt -lX11 -lrt -ldl -lm -luuid -L$PREFIX/lib -licuuc -licui18n
-    # if [[ ${ARCH} == 32 ]]; then
-    #   export CPPFLAGS="-L${BUILD_PREFIX}/${HOST}/sysroot/usr/lib ${CPPFLAGS}"
-    #   export CFLAGS="-I${BUILD_PREFIX}/${HOST}/sysroot/usr/lib ${CFLAGS}"
-    #   export CXXFLAGS="-I${BUILD_PREFIX}/${HOST}/sysroot/usr/lib ${CXXFLAGS}"
-    # else
-    #   export CPPFLAGS="-L${BUILD_PREFIX}/${HOST}/sysroot/usr/lib64 ${CPPFLAGS}"
-    #   export CFLAGS="-I${BUILD_PREFIX}/${HOST}/sysroot/usr/lib64 ${CFLAGS}"
-    #   export CXXFLAGS="-I${BUILD_PREFIX}/${HOST}/sysroot/usr/lib64 ${CXXFLAGS}"
-    # fi
-    echo "ac_cv_lib_Xt_XtToolkitInitialize=yes" > config.site
-    export CONFIG_SITE=${PWD}/config.site
     ./configure --prefix=${PREFIX}               \
                 --host=${HOST}                   \
                 --build=${BUILD}                 \
@@ -86,6 +48,7 @@ Linux() {
                 --with-x                         \
                 --with-pic                       \
                 --with-cairo                     \
+                --with-curses                    \
                 --with-readline                  \
                 --with-recommended-packages=no   \
                 --without-libintl-prefix         \
@@ -392,36 +355,10 @@ Darwin() {
     # unknown timezone 'GMT'
     # https://stat.ethz.ch/pipermail/r-devel/2014-April/068745.html
 
-#                --with-blas="-framework Accelerate" \
-
-
-    # May want to strip these from Makeconf at the end.
-    CFLAGS="-isysroot ${CONDA_BUILD_SYSROOT} "${CFLAGS}
-    LDFLAGS="-isysroot ${CONDA_BUILD_SYSROOT} "${LDFLAGS}
-    CPPFLAGS="-isysroot ${CONDA_BUILD_SYSROOT} "${CPPFLAGS}
-
-    # Our libuuid causes problems:
-    # In file included from qdPDF.c:29:
-    # In file included from ./qdPDF.h:3:
-    # In file included from ../../../../include/R_ext/QuartzDevice.h:103:
-    # In file included from /opt/MacOSX10.9.sdk/System/Library/Frameworks/ApplicationServices.framework/Headers/ApplicationServices.h:23:
-    # In file included from /opt/MacOSX10.9.sdk/System/Library/Frameworks/CoreServices.framework/Headers/CoreServices.h:23:
-    # In file included from /opt/MacOSX10.9.sdk/System/Library/Frameworks/CoreServices.framework/Frameworks/AE.framework/Headers/AE.h:20:
-    # In file included from /opt/MacOSX10.9.sdk/System/Library/Frameworks/CoreServices.framework/Frameworks/CarbonCore.framework/Headers/CarbonCore.h:208:
-    # In file included from /opt/MacOSX10.9.sdk/System/Library/Frameworks/CoreServices.framework/Frameworks/CarbonCore.framework/Headers/HFSVolumes.h:25:
-    # .. apart from this issue there seems to be a segfault:
-    # https://rt.cpan.org/Public/Bug/Display.html?id=104394
-    # http://openradar.appspot.com/radar?id=6069753579831296
-    # .. anyway, uuid is part of libc on Darwin, so let's just try to use that.
-    rm -f "${PREFIX}"/include/uuid/uuid.h
-
     ./configure --prefix=${PREFIX}                  \
                 --host=${HOST}                      \
                 --build=${BUILD}                    \
-                --with-sysroot=${CONDA_BUILD_SYSROOT}  \
-                --enable-shared                     \
-                --enable-R-shlib                    \
-                --enable-BLAS-shlib                 \
+                --with-blas="-framework Accelerate" \
                 --with-tk-config=${TK_CONFIG}       \
                 --with-tcl-config=${TCL_CONFIG}     \
                 --with-lapack                       \
@@ -441,33 +378,7 @@ Darwin() {
     # echo "Running make check-all, this will take some time ..."
     # make check-all -j1 V=1 > $(uname)-make-check.log 2>&1
     make install
-
-    # Useful references for macOS R with OpenBLAS:
-    # http://luisspuerto.net/2018/01/install-r-100-homebrew-edition-with-openblas-openmp-my-version/
-    # https://github.com/luisspuerto/homebrew-core/blob/r-3.4.4/Formula/r.rb
-    # Backup the old libR{blas,lapack}.dylib files and replace them with OpenBLAS
-    pushd ${PREFIX}/lib/R/lib
-      # Need to ignore libopenblas run-exports if we keep these around:
-      # mv libRblas.dylib libRblas.dylib.reference
-      # mv libRlapack.dylib libRlapack.dylib.reference
-      cp ../../libblas.dylib libRblas.dylib
-      cp ../../liblapack.dylib libRlapack.dylib
-      ${INSTALL_NAME_TOOL} -id libRblas.dylib libRblas.dylib
-      ${INSTALL_NAME_TOOL} -change @rpath/libopenblas.dylib @rpath/R/lib/libRblas.dylib libR.dylib
-      ${INSTALL_NAME_TOOL} -id libRlapack.dylib libRlapack.dylib
-    popd
-    pushd ${PREFIX}/lib/R/modules
-      ${INSTALL_NAME_TOOL} -change @rpath/libopenblas.dylib @rpath/R/lib/libRblas.dylib lapack.so
-    popd
-    pushd ${PREFIX}/lib/R/library/stats/libs
-      ${INSTALL_NAME_TOOL} -change @rpath/libopenblas.dylib @rpath/R/lib/libRblas.dylib stats.so
-    popd
-
-    pushd ${PREFIX}/lib/R/etc
-      sed -i -r "s|-isysroot ${CONDA_BUILD_SYSROOT}||g" Makeconf
-    popd
 }
-
 
 if [[ ${HOST} =~ .*darwin.* ]]; then
   Darwin
