@@ -26,6 +26,7 @@ export TK_LIBRARY=${PREFIX}/lib/tk8.6
 [[ -n ${LD} ]] && export LD=$(basename ${LD})
 [[ -n ${RANLIB} ]] && export RANLIB=$(basename ${RANLIB})
 [[ -n ${STRIP} ]] && export STRIP=$(basename ${STRIP})
+export OBJC=${CC}
 
 Linux() {
     # If lib/R/etc/javaconf ends up with anything other than ~autodetect~
@@ -34,7 +35,13 @@ Linux() {
     # and activate scripts now call 'R CMD javareconf'.
     unset JAVA_HOME
 
+    export CPPFLAGS="${CPPFLAGS} -Wl,-rpath-link,${PREFIX}/lib"
+    export LDFLAGS="${LDFLAGS} -Wl,-rpath-link,${PREFIX}/lib"
+
     mkdir -p ${PREFIX}/lib
+    # Tricky libuuid resolution issues against CentOS6's libSM. I may need to add some symbols to our libuuid library.
+    echo "ac_cv_lib_Xt_XtToolkitInitialize=yes" > config.site
+    export CONFIG_SITE=${PWD}/config.site
     ./configure --prefix=${PREFIX}               \
                 --host=${HOST}                   \
                 --build=${BUILD}                 \
