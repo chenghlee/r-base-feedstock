@@ -1,5 +1,5 @@
 {% set native = 'm2w64-' if win else '' %}
-{% set posix= 'm2-' if win else '' %}
+{% set posix = 'm2-' if win else '' %}
 {% set version = '3.5.1' %}
 
 package:
@@ -20,12 +20,15 @@ source:
     - 0008-Linux-Do-not-modify-LD_LIBRARY_PATH.patch
     - 0009-macOS-include-cairo.h-not-cairo-xlib.h.patch
     - 0010-javareconf-Do-not-fail-on-compile-fail.patch
-    - 0011-javareconf-macOS-Continue-to-allow-system-Java-lt-9-.patch
-    - 0012-Allow-rpath-in-tcltk-dylib-LC_LOAD_DYLIB.patch
+    - 0011-Revert-part-of-9b818c6dc00143ff18775a4015a3f43b5196f.patch
+    - 0012-javareconf-macOS-Continue-to-allow-system-Java-lt-9-.patch
+    - 0013-Allow-rpath-in-tcltk-dylib-LC_LOAD_DYLIB-command.patch
+    - 0014-Add-luuid-to-X_PRE_LIBS.patch
+    - 0015-Mimic-OpenBLAS-when-making-reference-Rblas-and-Rlapa.patch
 
 build:
   merge_build_host: True  # [win]
-  number: 2
+  number: 1
   rpaths:
     - lib/R/lib/
     - lib/
@@ -60,7 +63,7 @@ requirements:
     - {{ cdt('xorg-x11-proto-devel') }}  # [linux]
     - {{ cdt('libxrender') }}            # [linux]
     - {{ cdt('libxext') }}               # [linux]
-    - {{ cdt('libuuid-devel') }}         # [linux]
+    # - {{ cdt('libuuid-devel') }}         # [linux]
     - {{ cdt('libsm-devel') }}           # [linux]
     - {{ cdt('libice-devel') }}          # [linux]
     - {{ cdt('libx11-devel') }}          # [linux]
@@ -84,18 +87,20 @@ requirements:
   host:
     # This is a hack, strong run_exports should cause this to be added
     - llvm-openmp >=4.0.1                # [osx]
+    - freetype >=2.9.1
     - libgfortran                        # [osx]
     - readline                           # [not win]
     - ncurses                            # [not win]
     - libcurl                            # [not win]
     - xz                                 # [not win]
     - libpng                             # [not win]
-    - {{native}}bzip2 1.0.*
+    - {{native}}bzip2                    # [not win]
+    - {{native}}bzip2 1.0.*              # [win]
     - {{native}}cairo                    # [not win]
     - {{native}}libjpeg-turbo            # [win]
     - {{native}}jpeg                     # [not win]
     - {{native}}libiconv                 # [not linux]
-    # - {{native}}libuuid                  # [linux]
+    - {{native}}libuuid                  # [linux]
     - {{native}}gmp                      # [win]
     - {{native}}glib                     # [linux]
     - {{native}}fftw                     # [win]
@@ -105,36 +110,36 @@ requirements:
     - {{native}}bwidget
     - {{native}}tktable
     - {{native}}libpng                   # [win]
-    - {{native}}pango 1.40.*             # [not win]
+    - {{native}}pango                    # [not win]
     - {{native}}icu
     - {{native}}pcre
-    - {{native}}tk                       # [win]
-    - {{native}}tk 8.6.*                 # [not win]
+    - {{native}}tk
     - {{native}}zlib 1.2.8               # [win]
     - {{native}}zlib                     # [not win]
     - {{native}}gsl
     - {{native}}libtiff >=4.0.3,<4.0.8   # [win]
     - {{native}}libtiff                  # [not win]
-    - {{native}}libxml2 2.9.*            # [win]
+    - {{native}}libxml2                  # [win]
     - {{native}}libxml2                  # [not win]
-    - {{native}}libssh2 1.*              # [not win]
-    - {{native}}krb5 1.14.*              # [not win]
-    - {{native}}libopenblas              # [linux]
+    - {{native}}libssh2                  # [not win]
+    - {{native}}krb5                     # [not win]
+    - {{native}}libopenblas              # [linux or osx]
     - {{native}}openblas                 # [win]
 
   run:
     - _r-mutex 1.* anacondar_1
+    # Needed by R CMD javareconf
+    - make                               # [not win]
     - {{ compiler('fortran') }}          # [not win]
     - {{ compiler('cxx') }}              # [not win]
     - {{ compiler('c') }}                # [not win]
     - llvm-openmp >=4.0.1                # [osx]
-    - readline                           # [not win]
     - {{native}}gcc-libs                 # [win]
-    - libcurl                            # [not win]
     - curl                               # [not win]
     - {{native}}bzip2 1.0.*              # [win]
     - {{native}}libjpeg-turbo            # [win]
     - {{native}}libiconv                 # [win]
+    - {{native}}libuuid                  # [linux]
     - {{native}}gmp                      # [win]
     - {{native}}fftw                     # [win]
     - {{native}}xz                       # [win]
@@ -143,32 +148,35 @@ requirements:
     - {{native}}bwidget
     - {{native}}tktable
     - {{native}}libpng                   # [win]
-    - {{native}}pango 1.*                # [not win]
-    - {{native}}pcre
+    - {{native}}pcre                     # [win]
     - {{native}}tk                       # [win]
-    - {{native}}tk 8.6.*                 # [not win]
     - {{native}}zlib 1.2.8               # [win]
-    - {{native}}gsl
+    - {{native}}gsl                      # [win]
     - {{native}}libtiff >=4.0.3,<4.0.8   # [win]
     - {{native}}libxml2 2.9.*            # [win]
-    - {{native}}libssh2 1.*              # [not win]
-    - {{native}}krb5 1.14.*              # [not win]
     - {{native}}openblas                 # [win]
 
 test:
   commands:
     - R -h
     - R --version
-    - $R -e "library('tcltk')"           # [not win]
-    - "\"%R%\" -e \"library('tcltk')\""  # [win]
+    - R -e "library('tcltk')"            # [linux]
+    - R -e \"library('tcltk')\""         # [win]
     - Rscript --version
     - Rscript -e  'cat("ok\\n")'
-    - open  # [win]
-    # There doesn't seem to be a way to test this one
-    # - RSetReg  # [win]
-    - Rfe --help  # [win]
-    - Rterm --help  # [win]
-    - Rterm --version  # [win]
+    # TODO does not work on windows, because winCairo.dll is missing
+    - Rscript test-svg.R                 # [not win]
+    - open                               # [win]
+     # There doesn't seem to be a way to test this one
+     # - RSetReg                         # [win]
+    - Rfe --help                         # [win]
+    - Rterm --help                       # [win]
+    - Rterm --version                    # [win]
+    # Prevent regression mentioned in https://github.com/conda-forge/r-base-feedstock/issues/50
+    - Rscript -e "stopifnot(capabilities('jpeg'), TRUE)"
+    - Rscript -e "stopifnot(capabilities('png'), TRUE)"
+  files:
+    - test-svg.R
 
 about:
   home: http://www.r-project.org/
@@ -181,6 +189,7 @@ extra:
   recipe-maintainers:
     - bgruening
     - johanneskoester
+    - isuruf
     - mingwandroid
     - ocefpaf
     - sodre
