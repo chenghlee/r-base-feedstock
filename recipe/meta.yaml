@@ -87,7 +87,7 @@ requirements:
   host:
     # This is a hack, strong run_exports should cause this to be added
     - llvm-openmp >=4.0.1                # [osx]
-    - freetype >=2.9.1
+    - freetype >=2.9.1                   # [not win]
     - libgfortran                        # [osx]
     - readline                           # [not win]
     - ncurses                            # [not win]
