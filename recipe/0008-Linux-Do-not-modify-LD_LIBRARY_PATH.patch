@@ -1,7 +1,7 @@
-From 243d5e67d8204489315701f871fc3febd7b8b26e Mon Sep 17 00:00:00 2001
+From 5d8a42d596b60c4b6126e225fc7f716b7b7c298e Mon Sep 17 00:00:00 2001
 From: Ray Donnelly <mingw.android@gmail.com>
 Date: Tue, 2 Jan 2018 15:51:41 +0000
-Subject: [PATCH 08/13] Linux: Do not modify LD_LIBRARY_PATH
+Subject: [PATCH 08/17] Linux: Do not modify LD_LIBRARY_PATH
 
 ---
  Makeconf.in     |  3 ++-
@@ -113,5 +113,5 @@ index 314d364f5c..3fb5331f9c 100644
  : ${R_JAVA_LD_LIBRARY_PATH=@R_JAVA_LD_LIBRARY_PATH@}
  if test -n "@R_LD_LIBRARY_PATH@"; then
 -- 
-2.17.0
+2.18.0
 

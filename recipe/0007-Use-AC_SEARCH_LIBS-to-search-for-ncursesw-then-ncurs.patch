@@ -1,7 +1,7 @@
-From 73bc39d47ddcd46e5efc3ebf62014ebcd65db001 Mon Sep 17 00:00:00 2001
+From 168a3f0554ae84221434d37f76a44ce943dc2dd0 Mon Sep 17 00:00:00 2001
 From: Ray Donnelly <mingw.android@gmail.com>
 Date: Tue, 21 Jun 2016 14:22:30 +0100
-Subject: [PATCH 07/13] Use AC_SEARCH_LIBS to search for ncursesw then ncurses
+Subject: [PATCH 07/17] Use AC_SEARCH_LIBS to search for ncursesw then ncurses
 
 ---
  configure    | 58 +++++++++++++++++++++++++++++++++-------------------
@@ -9,7 +9,7 @@ Subject: [PATCH 07/13] Use AC_SEARCH_LIBS to search for ncursesw then ncurses
  2 files changed, 38 insertions(+), 22 deletions(-)
 
 diff --git a/configure b/configure
-index 01c0b41675..93350e072d 100755
+index 89f6062d74..0d441763bb 100755
 --- a/configure
 +++ b/configure
 @@ -22932,42 +22932,59 @@ fi
@@ -114,5 +114,5 @@ index 7aede25c75..1e70ea2dfb 100644
                                AC_CHECK_LIB(termlib, main)))
      AC_CHECK_LIB(readline, rl_callback_read_char)
 -- 
-2.17.0
+2.18.0
 

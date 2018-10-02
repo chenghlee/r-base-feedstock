@@ -381,6 +381,12 @@ Mingw_w64_makefiles() {
         sed -i 's|LOCAL_SOFT = |LOCAL_SOFT = \$(R_HOME)/../../Library/mingw-w64|g' ${_makeconf}
         sed -i 's|^BINPREF ?= .*$|BINPREF ?= \$(R_HOME)/../../Library/mingw-w64/bin/|g' ${_makeconf}
     done
+
+    pushd ${PREFIX}/lib/R/etc
+      # See: https://github.com/conda/conda/issues/6701
+      chmod g+w Makeconf ldpaths
+    popd
+
     return 0
 }
 
@@ -465,16 +471,15 @@ Darwin() {
 
     pushd ${PREFIX}/lib/R/etc
       sed -i -r "s|-isysroot ${CONDA_BUILD_SYSROOT}||g" Makeconf
+      # See: https://github.com/conda/conda/issues/6701
+      chmod g+w Makeconf ldpaths
     popd
 }
 
-
-if [[ ${HOST} =~ .*darwin.* ]]; then
-  Darwin
+if [[ $target_platform == osx-64 ]]; then
   mkdir -p ${PREFIX}/etc/conda/activate.d
   cp "${RECIPE_DIR}"/activate-${PKG_NAME}.sh ${PREFIX}/etc/conda/activate.d/activate-${PKG_NAME}.sh
-elif [[ ${HOST} =~ .*linux.* ]]; then
-  Linux
+elif [[ $target_platform =~ .*linux.* ]]; then
   mkdir -p ${PREFIX}/etc/conda/activate.d
   cp "${RECIPE_DIR}"/activate-${PKG_NAME}.sh ${PREFIX}/etc/conda/activate.d/activate-${PKG_NAME}.sh
 elif [[ $(uname) =~ M.* ]]; then

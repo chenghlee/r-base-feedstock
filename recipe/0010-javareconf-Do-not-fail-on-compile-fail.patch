@@ -1,7 +1,7 @@
-From f4f2904e8c82894f6207cd22f32754e4df88b61b Mon Sep 17 00:00:00 2001
+From 994fd74c14e7b2cde21f6260f4ded99282af6cd6 Mon Sep 17 00:00:00 2001
 From: Ray Donnelly <mingw.android@gmail.com>
 Date: Tue, 2 Jan 2018 15:53:45 +0000
-Subject: [PATCH 10/13] javareconf: Do not fail on compile fail
+Subject: [PATCH 10/17] javareconf: Do not fail on compile fail
 
 ---
  src/scripts/javareconf.in | 14 ++++++++++----
@@ -33,5 +33,5 @@ index 2abbb85810..5dbe3a3e9a 100644
  
  rm -f conftest.c conftest.o conftest.so Makevars
 -- 
-2.17.0
+2.18.0
 
