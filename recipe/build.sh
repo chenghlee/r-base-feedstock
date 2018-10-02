@@ -129,6 +129,11 @@ Linux() {
     # pushd ${PREFIX}/lib/R/etc
     #   sed -i -r "s|-lRblas|-Wl,-rpath-link,${PREFIX}/lib -lRblas|" Makeconf
     # popd
+
+    pushd ${PREFIX}/lib/R/etc
+      # See: https://github.com/conda/conda/issues/6701
+      chmod g+w Makeconf ldpaths
+    popd
 }
 
 # This was an attempt to see how far we could get with using Autotools as things
@@ -382,11 +387,6 @@ Mingw_w64_makefiles() {
         sed -i 's|^BINPREF ?= .*$|BINPREF ?= \$(R_HOME)/../../Library/mingw-w64/bin/|g' ${_makeconf}
     done
 
-    pushd ${PREFIX}/lib/R/etc
-      # See: https://github.com/conda/conda/issues/6701
-      chmod g+w Makeconf ldpaths
-    popd
-
     return 0
 }
 
@@ -477,9 +477,11 @@ Darwin() {
 }
 
 if [[ $target_platform == osx-64 ]]; then
+  Darwin
   mkdir -p ${PREFIX}/etc/conda/activate.d
   cp "${RECIPE_DIR}"/activate-${PKG_NAME}.sh ${PREFIX}/etc/conda/activate.d/activate-${PKG_NAME}.sh
 elif [[ $target_platform =~ .*linux.* ]]; then
+  Linux
   mkdir -p ${PREFIX}/etc/conda/activate.d
   cp "${RECIPE_DIR}"/activate-${PKG_NAME}.sh ${PREFIX}/etc/conda/activate.d/activate-${PKG_NAME}.sh
 elif [[ $(uname) =~ M.* ]]; then
