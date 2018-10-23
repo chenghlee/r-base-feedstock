@@ -383,8 +383,11 @@ Mingw_w64_makefiles() {
     # * Here we force our MSYS2/mingw-w64 sysroot to be looked in for LOCAL_SOFT during r-packages builds (but actually this will not work since
     # R will append lib/$(R_ARCH) to this in various Makefiles. So long as we set build/merge_build_host then they will get found automatically)
     for _makeconf in $(find "${PREFIX}"/lib/R -name Makeconf); do
+        # For SystemDependencies the host prefix is good.
         sed -i 's|LOCAL_SOFT = |LOCAL_SOFT = \$(R_HOME)/../../Library/mingw-w64|g' ${_makeconf}
         sed -i 's|^BINPREF ?= .*$|BINPREF ?= \$(R_HOME)/../../Library/mingw-w64/bin/|g' ${_makeconf}
+        # For compilers it is not, since they're put in the build prefix.
+        sed -i 's| = \$(BINPREF)| = |g' ${_makeconf}
     done
 
     return 0
