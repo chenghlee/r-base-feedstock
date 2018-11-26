@@ -51,10 +51,12 @@ build:
   ignore_run_exports:
     - openblas-devel
     - ncurses
+    - libstdcxx-ng
 
 requirements:
   build:
     - {{ compiler('c') }}                # [not win]
+    - {{ compiler('cxx') }}              # [not win]
     - {{ compiler('fortran') }}          # [not win]
     - make                               # [not win]
     - {{native}}toolchain                # [win]
