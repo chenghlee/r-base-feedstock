@@ -55,8 +55,8 @@ build:
 requirements:
   build:
     - {{ compiler('c') }}                # [not win]
-    - {{ compiler('cxx') }}              # [not win and not osx]
     - {{ compiler('fortran') }}          # [not win]
+    - make                               # [not win]
     - {{native}}toolchain                # [win]
     - {{ cdt('xorg-x11-proto-devel') }}  # [linux]
     - {{ cdt('libxrender') }}            # [linux]

@@ -11,7 +11,9 @@ fi
 
 # Without this, dependency scanning fails.
 export CPPFLAGS="${CPPFLAGS} -I$PREFIX/include"
-
+if [[ $target_platform =~ linux.* ]]; then
+  export LDFLAGS="${LDFLAGS} -Wl,-rpath-link,$PREFIX/lib"
+fi
 export TCL_CONFIG=${PREFIX}/lib/tclConfig.sh
 export TK_CONFIG=${PREFIX}/lib/tkConfig.sh
 export TCL_LIBRARY=${PREFIX}/lib/tcl8.6
@@ -34,6 +36,8 @@ Linux() {
     # and activate scripts now call 'R CMD javareconf'.
     unset JAVA_HOME
 
+    echo "ac_cv_lib_Xt_XtToolkitInitialize=yes" > config.site
+    export CONFIG_SITE=${PWD}/config.site
     mkdir -p ${PREFIX}/lib
     ./configure --prefix=${PREFIX}               \
                 --host=${HOST}                   \
@@ -48,7 +52,6 @@ Linux() {
                 --with-x                         \
                 --with-pic                       \
                 --with-cairo                     \
-                --with-curses                    \
                 --with-readline                  \
                 --with-recommended-packages=no   \
                 --without-libintl-prefix         \
@@ -384,15 +387,15 @@ Darwin() {
     make install
 }
 
-if [[ ${HOST} =~ .*darwin.* ]]; then
+if [[ $target_platform == osx-64 ]]; then
   Darwin
   mkdir -p ${PREFIX}/etc/conda/activate.d
   cp "${RECIPE_DIR}"/activate-${PKG_NAME}.sh ${PREFIX}/etc/conda/activate.d/activate-${PKG_NAME}.sh
-elif [[ ${HOST} =~ .*linux.* ]]; then
+elif [[ $target_platform =~ linux.* ]]; then
   Linux
   mkdir -p ${PREFIX}/etc/conda/activate.d
   cp "${RECIPE_DIR}"/activate-${PKG_NAME}.sh ${PREFIX}/etc/conda/activate.d/activate-${PKG_NAME}.sh
-elif [[ $(uname) =~ M.* ]]; then
+elif [[ $target_platform =~ win.* ]]; then
   # Mingw_w64_autotools
   Mingw_w64_makefiles
 fi
