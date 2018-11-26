@@ -25,7 +25,7 @@ source:
 
 build:
   merge_build_host: True  # [win]
-  number: 4
+  number: 5
   rpaths:
     - lib/R/lib/
     - lib/
@@ -49,8 +49,9 @@ build:
   # DT_NEEDED of libopenblas.so and cannot be used
   # against any old libRblas.so)
   ignore_run_exports:
-    - openblas-devel
+    - libopenblas
     - ncurses
+    - blas
     - libstdcxx-ng
 
 requirements:
@@ -121,9 +122,9 @@ requirements:
 
   run:
     - _r-mutex 1.* anacondar_1
-    - {{ compiler('fortran') }}          # [not win]
-    - {{ compiler('cxx') }}              # [not win]
     - {{ compiler('c') }}                # [not win]
+    - {{ compiler('cxx') }}              # [not win]
+    - {{ compiler('fortran') }}          # [not win]
     - llvm-openmp >=4.0.1                # [osx]
     - readline 7.*                       # [not win]
     - {{native}}gcc-libs                 # [win]
