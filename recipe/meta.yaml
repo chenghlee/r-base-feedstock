@@ -1,6 +1,6 @@
 {% set native = 'm2w64-' if win else '' %}
 {% set posix = 'm2-' if win else '' %}
-{% set version = '3.5.3' %}
+{% set version = '3.6.0' %}
 
 package:
   name: r-base
@@ -8,7 +8,7 @@ package:
 
 source:
   url: https://cran.r-project.org/src/base/R-3/R-{{ version }}.tar.gz
-  sha256: 2bfa37b7bd709f003d6b8a172ddfb6d03ddd2d672d6096439523039f7a8e678c
+  sha256: 36fcac3e452666158e62459c6fc810adc247c7109ed71c5b6c3ad5fc2bf57509
   patches:
     - 0001-Darwin-Remove-unicode-elipsis-character-from-grDevic.patch
     - 0002-Fix-trio-config.h-include-depth-issue.patch
@@ -27,9 +27,9 @@ source:
     - 0015-link-Xt-to-uuid.patch
     - 0016-Mimic-OpenBLAS-when-making-reference-Rblas-and-Rlapa.patch
     - 0017-Foribly-remove-then-forcibly-mv-in-javareconf.in.patch
+    - 0018-Use-LAPACK_LDFLAGS-in-Rlapack_la_LIBADD.patch
 
 build:
-  merge_build_host: True  # [win]
   number: 0
   rpaths:
     - lib/R/lib/
@@ -82,6 +82,7 @@ requirements:
     - m2-curl                            # [win]
     - m2-p7zip                           # [win]
     - m2-patch                           # [win]
+    - patch                              # [not win]
     - texlive-core                       # [unix]
     - {{posix}}autoconf
     - {{posix}}automake-wrapper          # [win]
@@ -119,11 +120,8 @@ requirements:
     - {{native}}tk
     - {{native}}zlib 1.2.8               # [win]
     - {{native}}zlib                     # [not win]
-    - {{native}}gsl
     - {{native}}libtiff >=4.0.3,<4.0.8   # [win]
     - {{native}}libtiff                  # [not win]
-    - {{native}}libxml2                  # [win]
-    - {{native}}libxml2                  # [not win]
     - {{native}}libssh2                  # [not win]
     - {{native}}krb5                     # [not win]
     - {{native}}openblas
@@ -154,9 +152,7 @@ requirements:
     - {{native}}pcre                     # [win]
     - {{native}}tk                       # [win]
     - {{native}}zlib                     # [win]
-    - {{native}}gsl                      # [win]
     - {{native}}libtiff                  # [win]
-    - {{native}}libxml2                  # [win]
     - {{native}}openblas                 # [win]
     # Once run_exports are in place these will not be necessary:
     - {{ pin_compatible('pango') }}      # [not win]

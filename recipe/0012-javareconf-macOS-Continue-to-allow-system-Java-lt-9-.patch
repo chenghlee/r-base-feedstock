@@ -1,7 +1,7 @@
-From 67fdb2048d12829a2f32a1f771a4382a90b25a42 Mon Sep 17 00:00:00 2001
+From 003ef0c4d8c73bef4f003e12eab461714b41e9cc Mon Sep 17 00:00:00 2001
 From: Ray Donnelly <mingw.android@gmail.com>
 Date: Sun, 7 Jan 2018 11:35:05 +0000
-Subject: [PATCH 12/17] javareconf (macOS): Continue to allow system Java lt 9
+Subject: [PATCH 12/18] javareconf (macOS): Continue to allow system Java lt 9
  to be detected as such
 
 Java 9 is for macOS 10.10 and above, we still support 10.9
@@ -25,7 +25,7 @@ is 32-bit only and jni.h does not get found without JNI cpp flags being set.
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/src/scripts/javareconf.in b/src/scripts/javareconf.in
-index eab964d..26af5f5 100644
+index ca72145269..d23fcfb47d 100644
 --- a/src/scripts/javareconf.in
 +++ b/src/scripts/javareconf.in
 @@ -204,7 +204,7 @@ hostos=`uname 2>/dev/null`
@@ -38,5 +38,5 @@ index eab964d..26af5f5 100644
         echo "System Java on macOS"
         JAVA_CPPFLAGS="-I/System/Library/Frameworks/JavaVM.framework/Headers"
 -- 
-2.19.1
+2.20.1
 

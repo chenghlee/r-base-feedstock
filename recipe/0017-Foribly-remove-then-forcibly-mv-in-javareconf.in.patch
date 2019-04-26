@@ -1,14 +1,14 @@
-From 0504e112464b20dd25cfc76ac70bdeeb52420234 Mon Sep 17 00:00:00 2001
+From 9f472c989bbf0bdeb849f3ba540cfe36ca88b0ac Mon Sep 17 00:00:00 2001
 From: Ray Donnelly <mingw.android@gmail.com>
 Date: Tue, 2 Oct 2018 10:48:53 +0100
-Subject: [PATCH 17/17] Foribly remove then forcibly mv in javareconf.in
+Subject: [PATCH 17/18] Foribly remove then forcibly mv in javareconf.in
 
 ---
  src/scripts/javareconf.in | 11 +++++++----
  1 file changed, 7 insertions(+), 4 deletions(-)
 
 diff --git a/src/scripts/javareconf.in b/src/scripts/javareconf.in
-index 26af5f5..ddb682d 100644
+index d23fcfb47d..00bf3600bf 100644
 --- a/src/scripts/javareconf.in
 +++ b/src/scripts/javareconf.in
 @@ -419,11 +419,14 @@ else
@@ -31,5 +31,5 @@ index 26af5f5..ddb682d 100644
      fi
  done
 -- 
-2.19.1
+2.20.1
 
