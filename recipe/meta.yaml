@@ -88,6 +88,23 @@ requirements:
     - {{posix}}automake-wrapper          # [win]
     - {{posix}}automake                  # [not win]
     - make                               # [not win]
+    # Duplicated into build due 2 different hosts for windows
+    - {{native}}xz                       # [win]
+    - {{native}}pcre                     # [win]
+    - {{native}}icu                      # [win]
+    - {{native}}tk                       # [win]
+    - {{native}}libpng                   # [win]
+    - {{native}}libjpeg-turbo            # [win]
+    - {{native}}bzip2 1.0.*              # [win]
+    - {{native}}libiconv                 # [win]
+    - {{native}}gmp                      # [win]
+    - {{native}}mpfr                     # [win]
+    - {{native}}fftw                     # [win]
+    - {{native}}libtiff >=4.0.3,<4.0.8   # [win]
+    - {{native}}libsndfile               # [win]
+    - {{native}}zlib 1.2.8               # [win]
+    - {{native}}openblas                 # [win]
+
   host:
     - msys2-conda-epoch                  # [win]
     # This is a hack, strong run_exports should cause this to be added
@@ -96,8 +113,8 @@ requirements:
     - readline                           # [not win]
     - ncurses                            # [not win]
     - libcurl                            # [not win]
-    - xz                                 # [not win]
-    - libpng                             # [not win]
+    - {{native}}xz
+    - {{native}}libpng
     - {{native}}bzip2                    # [not win]
     - {{native}}bzip2 1.0.*              # [win]
     - {{native}}cairo                    # [not win]
@@ -108,12 +125,10 @@ requirements:
     - {{native}}gmp                      # [win]
     - {{native}}glib                     # [linux]
     - {{native}}fftw                     # [win]
-    - {{native}}xz                       # [win]
     - {{native}}mpfr                     # [win]
     - {{native}}libsndfile               # [win]
     - {{native}}bwidget
     - {{native}}tktable
-    - {{native}}libpng                   # [win]
     - {{native}}pango                    # [not win]
     - {{native}}icu
     - {{native}}pcre
