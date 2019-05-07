@@ -36,7 +36,7 @@ diff --git a/configure.ac b/configure.ac
 index 45162206e2..75c712be22 100644
 --- a/configure.ac
 +++ b/configure.ac
-@@ -1562,9 +1562,14 @@ dnl     ;;
+@@ -1562,9 +1562,15 @@ dnl     ;;
      dylib_ldflags="${darwin_dylib_ldflags}"
      MAJR_VERSION=`echo "${PACKAGE_VERSION}" | sed  -e "s/[[\.]][[1-9]]$/.0/"` 
      LIBR_LDFLAGS="-install_name libR.dylib -compatibility_version ${MAJR_VERSION}  -current_version ${PACKAGE_VERSION}  -headerpad_max_install_names"
@@ -51,6 +51,7 @@ index 45162206e2..75c712be22 100644
 +      RLAPACK_LDFLAGS="-install_name libRlapack.dylib -compatibility_version ${MAJR_VERSION} -current_version ${PACKAGE_VERSION}  -headerpad_max_install_names"
 +      ## don't use version in libRblas so we can replace it with any BLAS implementation
 +      RBLAS_LDFLAGS="-install_name libRblas.dylib -headerpad_max_install_names"
++    fi
      ;;
  dnl   hpux*)
  dnl     ## Needs to avoid embedding a relative path ../../../bin.
