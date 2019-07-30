@@ -143,8 +143,6 @@ requirements:
     - {{native}}krb5                     # [not win]
     - {{native}}openblas
     - {{native}}libxml2
-    - {{native}}liblapack                # [linux]
-    - sed                                # [linux]
 
   run:
     - _r-mutex 1.* anacondar_1
