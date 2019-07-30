@@ -1,6 +1,6 @@
 {% set native = 'm2w64-' if win else '' %}
 {% set posix = 'm2-' if win else '' %}
-{% set version = '3.6.0' %}
+{% set version = '3.6.1' %}
 
 package:
   name: r-base
@@ -8,7 +8,7 @@ package:
 
 source:
   url: https://cran.r-project.org/src/base/R-3/R-{{ version }}.tar.gz
-  sha256: 36fcac3e452666158e62459c6fc810adc247c7109ed71c5b6c3ad5fc2bf57509
+  sha256: 5baa9ebd3e71acecdcc3da31d9042fb174d55a42829f8315f2457080978b1389
   patches:
     - 0001-Darwin-Remove-unicode-elipsis-character-from-grDevic.patch
     - 0002-Fix-trio-config.h-include-depth-issue.patch
@@ -104,6 +104,7 @@ requirements:
     - {{native}}libsndfile               # [win]
     - {{native}}zlib 1.2.8               # [win]
     - {{native}}openblas                 # [win]
+    - {{native}}gsl
 
   host:
     - msys2-conda-epoch                  # [win]
@@ -135,11 +136,15 @@ requirements:
     - {{native}}tk
     - {{native}}zlib 1.2.8               # [win]
     - {{native}}zlib                     # [not win]
+    - {{native}}gsl
     - {{native}}libtiff >=4.0.3,<4.0.8   # [win]
     - {{native}}libtiff                  # [not win]
     - {{native}}libssh2                  # [not win]
     - {{native}}krb5                     # [not win]
     - {{native}}openblas
+    - {{native}}libxml2
+    - {{native}}liblapack                # [linux]
+    - sed                                # [linux]
 
   run:
     - _r-mutex 1.* anacondar_1
@@ -160,6 +165,7 @@ requirements:
     - {{native}}fftw                     # [win]
     - {{native}}xz                       # [win]
     - {{native}}mpfr                     # [win]
+    - {{native}}gsl                      # [win]
     - {{native}}libsndfile               # [win]
     - {{native}}bwidget
     - {{native}}tktable
@@ -168,6 +174,7 @@ requirements:
     - {{native}}tk                       # [win]
     - {{native}}zlib                     # [win]
     - {{native}}libtiff                  # [win]
+    - {{native}}libxml2                  # [win]
     - {{native}}openblas                 # [win]
     # Once run_exports are in place these will not be necessary:
     - {{ pin_compatible('pango') }}      # [not win]
@@ -213,3 +220,4 @@ extra:
     - ocefpaf
     - sodre
     - jdblischak
+    - ktietz
