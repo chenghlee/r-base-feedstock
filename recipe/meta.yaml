@@ -30,7 +30,7 @@ source:
     - 0018-Use-LAPACK_LDFLAGS-in-Rlapack_la_LIBADD.patch
 
 build:
-  number: 0
+  number: 1
   rpaths:
     - lib/R/lib/
     - lib/
@@ -206,7 +206,10 @@ about:
   home: http://www.r-project.org/
   license: GPL-3.0
   license_family: GPL
-  license_file: COPYING
+  license_file:
+    - COPYING
+    - dependency_licenses/openblas.txt
+    - dependency_licenses/lapack-netlib.txt
   summary: 'R is a free software environment for statistical computing and graphics.'
 
 extra:
