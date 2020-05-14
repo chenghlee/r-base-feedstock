@@ -7,7 +7,7 @@ package:
   version: {{ version }}
 
 source:
-  url: https://cran.r-project.org/src/base/R-3/R-{{ version }}.tar.gz
+  url: https://cloud.r-project.org/src/base/R-3/R-{{ version }}.tar.gz
   sha256: 5baa9ebd3e71acecdcc3da31d9042fb174d55a42829f8315f2457080978b1389
   patches:
     - 0001-Darwin-Remove-unicode-elipsis-character-from-grDevic.patch
@@ -30,7 +30,7 @@ source:
     - 0018-Use-LAPACK_LDFLAGS-in-Rlapack_la_LIBADD.patch
 
 build:
-  number: 1
+  number: 2
   rpaths:
     - lib/R/lib/
     - lib/
@@ -110,39 +110,39 @@ requirements:
     - msys2-conda-epoch                  # [win]
     # This is a hack, strong run_exports should cause this to be added
     - llvm-openmp >=4.0.1                # [osx]
-    - freetype                           # [not win]
-    - readline                           # [not win]
-    - ncurses                            # [not win]
-    - libcurl                            # [not win]
+    - freetype {{ freetype }}            # [not win]
+    - readline {{ readline }}            # [not win]
+    - ncurses {{ ncurses }}              # [not win]
+    - libcurl {{ libcurl }}              # [not win]
     - {{native}}xz
-    - {{native}}libpng
+    - {{native}}libpng {{ libpng }}
     - {{native}}bzip2                    # [not win]
     - {{native}}bzip2 1.0.*              # [win]
-    - {{native}}cairo                    # [not win]
+    - {{native}}cairo {{ cairo }}        # [not win]
     - {{native}}libjpeg-turbo            # [win]
-    - {{native}}jpeg                     # [not win]
+    - {{native}}jpeg {{ jpeg }}          # [not win]
     - {{native}}libiconv                 # [not linux]
     - {{native}}libuuid                  # [linux]
     - {{native}}gmp                      # [win]
-    - {{native}}glib                     # [linux]
+    - {{native}}glib {{ glib }}          # [linux]
     - {{native}}fftw                     # [win]
     - {{native}}mpfr                     # [win]
     - {{native}}libsndfile               # [win]
     - {{native}}bwidget
     - {{native}}tktable
-    - {{native}}pango                    # [not win]
-    - {{native}}icu
-    - {{native}}pcre
-    - {{native}}tk
+    - {{native}}pango {{ pango }}        # [not win]
+    - {{native}}icu {{ icu }}
+    - {{native}}pcre {{ pcre }}
+    - {{native}}tk {{ tk }}
     - {{native}}zlib 1.2.8               # [win]
     - {{native}}zlib                     # [not win]
-    - {{native}}gsl
+    - {{native}}gsl {{ gsl }}
     - {{native}}libtiff >=4.0.3,<4.0.8   # [win]
-    - {{native}}libtiff                  # [not win]
-    - {{native}}libssh2                  # [not win]
-    - {{native}}krb5                     # [not win]
+    - {{native}}libtiff {{ libtiff }}    # [not win]
+    - {{native}}libssh2 {{ libssh2 }}    # [not win]
+    - {{native}}krb5 {{ krb5 }}          # [not win]
     - {{native}}openblas
-    - {{native}}libxml2
+    - {{native}}libxml2 {{ libxml2 }}
 
   run:
     - _r-mutex 1.* anacondar_1

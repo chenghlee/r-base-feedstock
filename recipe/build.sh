@@ -56,7 +56,7 @@ Linux() {
     unset JAVA_HOME
 
     export CPPFLAGS="${CPPFLAGS} -Wl,-rpath-link,${PREFIX}/lib"
-    export LDFLAGS="${LDFLAGS} -Wl,-rpath-link,${PREFIX}/lib"
+    export LDFLAGS="${LDFLAGS} -L${PREFIX}/lib -Wl,-rpath-link,${PREFIX}/lib"
 
     mkdir -p ${PREFIX}/lib
     # Tricky libuuid resolution issues against CentOS6's libSM. I may need to add some symbols to our libuuid library.
@@ -74,6 +74,7 @@ Linux() {
     # fi
     echo "ac_cv_lib_Xt_XtToolkitInitialize=yes" > config.site
     export CONFIG_SITE=${PWD}/config.site
+    env LD_LIBRARY_PATH="${PREFIX}/lib"          \
     ./configure --prefix=${PREFIX}               \
                 --host=${HOST}                   \
                 --build=${BUILD}                 \
