@@ -30,7 +30,7 @@ source:
 
 build:
   merge_build_host: True  # [win]
-  number: 0
+  number: 1
   rpaths:
     - lib/R/lib/
     - lib/
@@ -55,6 +55,13 @@ build:
   # against any old libRblas.so)
   ignore_run_exports:
     - libopenblas
+    - libssh2       # [unix]
+    - krb5          # [unix]
+    - libxml2       # [unix]
+    - ncurses       # [unix]
+    - gsl           # [unix]
+    - freetype      # [unix]
+    - libuuid       # [linux]
 
 requirements:
   build:
@@ -94,7 +101,8 @@ requirements:
     - freetype                           # [not win]
     - readline                           # [not win]
     - ncurses                            # [not win]
-    - libcurl                            # [not win]
+    - libcurl <7.68.0                    # [osx]
+    - libcurl                            # [linux]
     - xz                                 # [not win]
     - libpng                             # [not win]
     - {{native}}bzip2                    # [not win]
@@ -126,7 +134,8 @@ requirements:
     - {{native}}libxml2                  # [not win]
     - {{native}}libssh2                  # [not win]
     - {{native}}krb5                     # [not win]
-    - {{native}}openblas
+    - {{native}}openblas                 # [win]
+    - openblas >=0.3.6                   # [not win]
 
   run:
     - _r-mutex 1.* anacondar_1
