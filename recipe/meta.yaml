@@ -64,7 +64,9 @@ requirements:
     - m2w64-toolchain                    # [win]
     - {{ cdt('xorg-x11-proto-devel') }}  # [linux]
     - {{ cdt('libxrender') }}            # [linux]
+    - {{ cdt('libxrender-devel') }}      # [linux]
     - {{ cdt('libxext') }}               # [linux]
+    - {{ cdt('libxext-devel') }}         # [linux]
     - {{ cdt('libsm-devel') }}           # [linux]
     - {{ cdt('libice-devel') }}          # [linux]
     - {{ cdt('libx11-devel') }}          # [linux]
@@ -72,6 +74,7 @@ requirements:
     - {{ cdt('libxt-devel') }}           # [linux]
     - {{ cdt('libxcb') }}                # [linux]
     - {{ cdt('libxau') }}                # [linux]
+    - {{ cdt('libxau-devel') }}          # [linux]
     - {{ cdt('java-1.7.0-openjdk') }}    # [linux]
     - {{posix}}pkg-config
     - llvm-openmp >=4.0.1                # [osx]
