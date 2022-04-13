@@ -29,7 +29,6 @@ source:
     - patches/0016-Use-LAPACK_LDFLAGS-in-Rlapack_la_LIBADD.patch
 
 build:
-  merge_build_host: True  # [win]
   number: {{ build_number }}
   rpaths:
     - lib/R/lib/
@@ -55,7 +54,11 @@ build:
   # against any old libRblas.so)
   ignore_run_exports:
     - libopenblas
-
+#  missing_dso_whitelist:           # [linux]
+#    - $RPATH/libm.so.6             # [linux]
+#    - $RPATH/libpthread.so.0       # [linux]
+#    - $RPATH/libc.so.6             # [linux]
+#    - $RPATH/ld-linux-x86-64.so.2  # [linux]
 requirements:
   build:
     - gnuconfig  # [unix]
@@ -178,7 +181,7 @@ requirements:
     - {{ pin_compatible('pango') }}      # [not win]
     - {{ pin_compatible('bzip2') }}      # [not win]
     - {{ pin_compatible('icu') }}        # [not win]
-
+    - _openmp_mutex                      # [linux and (not ppc64le)]
 
 test:
   commands:

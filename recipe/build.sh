@@ -1,80 +1,4 @@
 #!/bin/bash
-# Get an updated config.sub and config.guess
-set -exo pipefail
-
-if [[ ! $target_platform =~ .*win.* ]]; then
-    cp $BUILD_PREFIX/share/gnuconfig/config.* ./tools
-fi
-
-export
-
-if [[ ${CONDA_BUILD_CROSS_COMPILATION:-0} == 1 ]]; then
-    export r_cv_header_zlib_h=yes
-    export r_cv_have_bzlib=yes
-    export r_cv_have_lzma=yes
-    export r_cv_have_pcre2utf=yes
-    export r_cv_have_pcre832=yes
-    export r_cv_have_curl722=yes
-    export r_cv_have_curl728=yes
-    export r_cv_have_curl_https=yes
-    export r_cv_size_max=yes
-    export r_cv_prog_fc_char_len_t=size_t
-    if [[ "${target_platform}" == linux-* ]]; then
-      export r_cv_kern_usrstack=no
-    else
-      export r_cv_kern_usrstack=yes
-    fi
-    export ac_cv_lib_icucore_ucol_open=yes
-    export ac_cv_func_mmap_fixed_mapped=yes
-    export r_cv_working_mktime=yes
-    export r_cv_func_ctanh_works=yes
-    # Need to check for openmp simd...
-    mkdir -p doc
-    (
-      export CFLAGS=""
-
-      export CXXFLAGS=""
-      export CC=$CC_FOR_BUILD
-      export CXX=$CXX_FOR_BUILD
-      export AR=$($CC_FOR_BUILD -print-prog-name=ar)
-      export F77=${F77//$HOST/$BUILD}
-      export F90=${F90//$HOST/$BUILD}
-      export F95=${F95//$HOST/$BUILD}
-      export FC=${FC//$HOST/$BUILD}
-      export GFORTRAN=${FC//$HOST/$BUILD}
-      export LD=${LD//$HOST/$BUILD}
-      export FFLAGS=${FFLAGS//$PREFIX/$BUILD_PREFIX}
-      export FORTRANFLAGS=${FORTRANFLAGS//$PREFIX/$BUILD_PREFIX}
-      # Filter out -march=.* from F*FLAGS
-      re='\-march\=[^[:space:]]*(.*)'
-      if [[ "${FFLAGS}" =~ $re ]]; then
-        export FFLAGS="${BASH_REMATCH[1]}${BASH_REMATCH[2]}"
-      fi
-      re='\-march\=[^[:space:]]*(.*)'
-      if [[ "${FORTRANFLAGS}" =~ $re ]]; then
-        export FORTRANFLAGS="${BASH_REMATCH[1]}${BASH_REMATCH[2]}"
-      fi
-      # Filter out -mtune=.* from F*FLAGS
-      re='\-mtune\=[^[:space:]]*(.*)'
-      if [[ "${FFLAGS}" =~ $re ]]; then
-        export FFLAGS="${BASH_REMATCH[1]}${BASH_REMATCH[2]}"
-      fi
-      re='\-mtune\=[^[:space:]]*(.*)'
-      if [[ "${FORTRANFLAGS}" =~ $re ]]; then
-        export FORTRANFLAGS="${BASH_REMATCH[1]}${BASH_REMATCH[2]}"
-      fi
-      export LDFLAGS=${LDFLAGS//$PREFIX/$BUILD_PREFIX}
-      export CPPFLAGS=${CPPFLAGS//$PREFIX/$BUILD_PREFIX}
-      export NM=$($CC_FOR_BUILD -print-prog-name=nm)
-      export PKG_CONFIG_PATH=${BUILD_PREFIX}/lib/pkgconfig
-      export CONDA_BUILD_CROSS_COMPILATION=0
-      export HOST=$BUILD
-      export PREFIX=$BUILD_PREFIX
-      export IS_MINIMAL_R_BUILD=1
-      # Use the original script without the prepended activation commands.
-      /bin/bash ${RECIPE_DIR}/build.sh
-    )
-fi
 
 aclocal -I m4
 autoconf
@@ -178,7 +102,6 @@ Linux() {
         exit 1
     fi
 
-    make clean
     make -j${CPU_COUNT} ${VERBOSE_AT}
     # echo "Running make check-all, this will take some time ..."
     # make check-all -j1 V=1 > $(uname)-make-check.log 2>&1 || make check-all -j1 V=1 > $(uname)-make-check.2.log 2>&1
