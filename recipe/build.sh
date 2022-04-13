@@ -82,7 +82,6 @@ Linux() {
                 --build=${BUILD}                 \
                 --enable-shared                  \
                 --enable-R-shlib                 \
-                --enable-BLAS-shlib              \
                 --disable-prebuilt-html          \
                 --enable-memory-profiling        \
                 --with-tk-config=${TK_CONFIG}    \
@@ -93,7 +92,8 @@ Linux() {
                 --with-readline                  \
                 --with-recommended-packages=no   \
                 --without-libintl-prefix         \
-		${CONFIGURE_ARGS}                \
+                --with-blas=-lblas               \
+                --with-lapack=-llapack           \
 		LIBnn=lib || (cat config.log; exit 1)
 
     if cat src/include/config.h | grep "undef HAVE_PANGOCAIRO"; then
@@ -109,18 +109,6 @@ Linux() {
     make install
     # Prevent C and C++ extensions from linking to libgfortran.
     sed -i -r 's|(^LDFLAGS = .*)-lgfortran|\1|g' ${PREFIX}/lib/R/etc/Makeconf
-
-    # Backup the old libR{blas,lapack}.so files and replace them with OpenBLAS
-    pushd ${PREFIX}/lib/R/lib
-      mv libRblas.so libRblas.so.reference
-      mv libRlapack.so libRlapack.so.reference
-      cp ../../libblas.so libRblas.so
-      cp ../../liblapack.so libRlapack.so
-      # .. and modify the SONAME.
-      patchelf --set-soname libRblas.so libRblas.so
-      patchelf --set-soname libRlapack.so libRlapack.so
-    popd
-
 
     pushd ${PREFIX}/lib/R/etc
       # See: https://github.com/conda/conda/issues/6701

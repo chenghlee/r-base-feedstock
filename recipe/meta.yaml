@@ -43,22 +43,6 @@ build:
     - lib/R/etc/x64/ldpaths
     - lib/R/etc/x64/javaconf
   detect_binary_files_with_prefix: true
-  # The current openblas-devel run exports
-  # are overly restrictive IMHO, should be
-  # open-ended, but actually because we
-  # need to copy the shared library into this
-  # package and change its SONAME to libRblas.so
-  # we do not want a run dependency on openblas
-  # at all (otherwise Matrix.so ends up with a
-  # DT_NEEDED of libopenblas.so and cannot be used
-  # against any old libRblas.so)
-  ignore_run_exports:
-    - libopenblas
-#  missing_dso_whitelist:           # [linux]
-#    - $RPATH/libm.so.6             # [linux]
-#    - $RPATH/libpthread.so.0       # [linux]
-#    - $RPATH/libc.so.6             # [linux]
-#    - $RPATH/ld-linux-x86-64.so.2  # [linux]
 requirements:
   build:
     - gnuconfig  # [unix]
