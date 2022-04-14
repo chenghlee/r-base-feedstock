@@ -42,6 +42,13 @@ build:
     - lib/R/etc/x64/Makeconf
     - lib/R/etc/x64/ldpaths
     - lib/R/etc/x64/javaconf
+  missing_dso_whitelist:
+    - $RPATH/ld-linux-x86-64.so.2
+    - $RPATH/libc.so.6
+    - $RPATH/libdl.so.2
+    - $RPATH/libm.so.6
+    - $RPATH/libpthread.so.0
+    - $RPATH/librt.so.1
   detect_binary_files_with_prefix: true
 requirements:
   build:
