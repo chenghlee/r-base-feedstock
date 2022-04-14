@@ -23,8 +23,6 @@ source:
     - patches/0010-Revert-part-of-9b818c6dc00143ff18775a4015a3f43b5196f.patch
     - patches/0011-javareconf-macOS-Continue-to-allow-system-Java-lt-9-.patch
     - patches/0012-Allow-rpath-in-tcltk-dylib-LC_LOAD_DYLIB-command.patch
-    #- patches/0013-Add-luuid-to-X_PRE_LIBS.patch
-    #- patches/0014-link-Xt-to-uuid.patch
     - patches/0015-Check-for-changes-then-forcibly-mv-in-javareconf.in.patch
     - patches/0016-Use-LAPACK_LDFLAGS-in-Rlapack_la_LIBADD.patch
 
@@ -132,11 +130,9 @@ requirements:
     - {{native}}pcre2
     - {{native}}tk
     - {{native}}zlib 1.2.8               # [win]
-    - {{native}}zlib 1.2.11              # [not win]
+    - {{native}}zlib                     # [not win]
     - {{native}}libtiff >=4.0.3,<4.0.8   # [win]
     - {{native}}libtiff                  # [not win]
-#    - {{native}}libssh2                  # [not win]   - old?
-#    - {{native}}krb5                     # [not win]
     - {{native}}openblas-devel           # [not win]
     - {{native}}openblas                 # [win]
 
