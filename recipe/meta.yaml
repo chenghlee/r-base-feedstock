@@ -17,7 +17,8 @@ source:
     - patches/0004-Win32-Extend-sqrt-NA_real_-hack-to-all-GCC-versions.patch
     - patches/0005-Win32-Prevent-conversion-of-R_ARCH-to-abs-Windows-pa.patch
     - patches/0006-Darwin-Avoid-setting-DYLD_FALLBACK_LIBRARY_PATH.patch
-    - patches/0007-Use-AC_SEARCH_LIBS-to-search-for-ncursesw-then-ncurs.patch
+    - patches/0007a-Use-AC_SEARCH_LIBS-to-search-for-ncursesw-then-ncurs.patch
+    - patches/0007b-Use-AC_SEARCH_LIBS-to-search-for-ncursesw-then-ncurs.patch
     - patches/0008-Linux-Do-not-modify-LD_LIBRARY_PATH.patch
     - patches/0009-javareconf-Do-not-fail-on-compile-fail.patch
     - patches/0010-Revert-part-of-9b818c6dc00143ff18775a4015a3f43b5196f.patch
@@ -189,7 +190,7 @@ test:
     - test-svg.R
 
 about:
-  home: http://www.r-project.org/
+  home: https://www.r-project.org/
   license: GPL-2.0
   license_family: GPL
   license_file: COPYING
