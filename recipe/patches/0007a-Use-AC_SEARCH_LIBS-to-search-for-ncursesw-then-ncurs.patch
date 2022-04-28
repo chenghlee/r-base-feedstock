@@ -1,24 +1,15 @@
 --- R-4.2.0-orig/configure	2022-04-14 15:16:11.000000000 -0700
-+++ R-4.2.0/configure	2022-04-27 14:56:11.890336968 -0700
-@@ -24001,7 +24001,7 @@
- R_LD_LIBRARY_PATH_save=${R_LD_LIBRARY_PATH}
- R_LD_LIBRARY_PATH=
- case "${host_os}" in
--  darwin*)
-+  some_other_platform*)
-     ## Darwin provides a full path in the ID of each library such
-     ## that the linker can add library's path to the binary at link time.
-     ## This allows the dyld to find libraries even without xx_LIBRARY_PATH.
-@@ -24351,43 +24351,59 @@
++++ R-4.2.0/configure	2022-04-27 18:09:56.799560853 -0700
+@@ -24351,43 +24351,60 @@
    if test "${use_readline}" = no; then
      ## only need ncurses if libreadline is not statically linked against it
      unset ac_cv_lib_readline_rl_callback_read_char
 -    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for main in -lncurses" >&5
 -printf %s "checking for main in -lncurses... " >&6; }
 -if test ${ac_cv_lib_ncurses_main+y}
-+    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for library containing initscr" >&5
-+$as_echo_n "checking for library containing initscr... " >&6; }
-+if ${ac_cv_search_initscr+:} false; then :
++    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for library containing initscr" >&5
++printf %s "checking for library containing initscr... " >&6; }
++if ${ac_cv_search_initscr+:} false
  then :
    printf %s "(cached) " >&6
  else $as_nop
@@ -58,36 +49,36 @@
 +    LIBS="-l$ac_lib  $ac_func_search_save_LIBS"
 +  fi
 +  if ac_fn_c_try_link "$LINENO"; then :
-+  ac_cv_search_initscr=$ac_res
++    ac_cv_search_initscr=$ac_res
++  fi
++  rm -f core conftest.err conftest.$ac_objext conftest.beam \
++    conftest$ac_exeext
++  if ${ac_cv_search_initscr+:} false; then :
++    break
++  fi
++done
++if ${ac_cv_search_initscr+:} false; then :
++ 
++  ac_cv_search_initscr=no
  fi
- rm -f core conftest.err conftest.$ac_objext conftest.beam \
+-rm -f core conftest.err conftest.$ac_objext conftest.beam \
 -    conftest$ac_exeext conftest.$ac_ext
 -LIBS=$ac_check_lib_save_LIBS
--fi
++rm conftest.$ac_ext
++LIBS=$ac_func_search_save_LIBS
+ fi
 -{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_ncurses_main" >&5
 -printf "%s\n" "$ac_cv_lib_ncurses_main" >&6; }
 -if test "x$ac_cv_lib_ncurses_main" = xyes
 -then :
 -  printf "%s\n" "#define HAVE_LIBNCURSES 1" >>confdefs.h
--
--  LIBS="-lncurses $LIBS"
-+    conftest$ac_exeext
-+  if ${ac_cv_search_initscr+:} false; then :
-+  break
-+fi
-+done
-+if ${ac_cv_search_initscr+:} false; then :
-+ 
-+  ac_cv_search_initscr=no
-+fi
-+rm conftest.$ac_ext
-+LIBS=$ac_func_search_save_LIBS
-+fi
 +{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_search_initscr" >&5
 +$as_echo "$ac_cv_search_initscr" >&6; }
 +ac_res=$ac_cv_search_initscr
 +if test "$ac_res" != no; then :
 +  test "$ac_res" = "none required" || LIBS="$ac_res $LIBS"
+ 
+-  LIBS="-lncurses $LIBS"
  
  else $as_nop
    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for main in -ltinfo" >&5
