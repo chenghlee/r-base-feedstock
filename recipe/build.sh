@@ -13,7 +13,6 @@ re2='(.*[[:space:]])\-I.*[^[:space:]]*(.*)'
 if [[ "${CPPFLAGS}" =~ $re2 ]]; then
   export CPPFLAGS="${BASH_REMATCH[1]}${BASH_REMATCH[2]}"
 fi
-
 # if [[ "${CFLAGS}" =~ $re2 ]]; then
 #   export CFLAGS="${BASH_REMATCH[1]}${BASH_REMATCH[2]}"
 # fi
@@ -28,12 +27,10 @@ fi
 #   export LDFLAGS="${BASH_REMATCH[1]}${BASH_REMATCH[2]}"
 # fi
 
-# Without this, dependency scanning fails
-#   (but with it CDT libuuid / Xt fails to link which we hack around with config.site)
+# Without this, dependency scanning fails (but with it CDT libuuid / Xt fails to link
+# which we hack around with config.site)
 export CPPFLAGS="${CPPFLAGS} -I$PREFIX/include"
-if [[ $target_platform =~ linux.* ]]; then
-  export LDFLAGS="${LDFLAGS} -Wl,-rpath-link,$PREFIX/lib"
-fi
+
 export TCL_CONFIG=${PREFIX}/lib/tclConfig.sh
 export TK_CONFIG=${PREFIX}/lib/tkConfig.sh
 export TCL_LIBRARY=${PREFIX}/lib/tcl8.6
@@ -57,9 +54,11 @@ Linux() {
     # change it, so we prevent configure from finding Java.  post-install
     # and activate scripts now call 'R CMD javareconf'.
     unset JAVA_HOME
+    # add cdt jre bin dir to path, so the hack above works without an using
+    # an external jdk. FIXME!
+    export PATH="${BUILD_PREFIX}/x86_64-conda_"*"-linux-gnu/sysroot/usr/lib/jvm/java-"*"-openjdk-"*"/jre/bin:${PATH}"
 
     export CPPFLAGS="${CPPFLAGS} -Wl,-rpath-link,${PREFIX}/lib"
-    export LDFLAGS="${LDFLAGS} -Wl,-rpath-link,${PREFIX}/lib"
 
     # Make sure curl is found from PREFIX instead of BUILD_PREFIX
     rm -f "${BUILD_PREFIX}/bin/curl-config"
@@ -80,6 +79,11 @@ Linux() {
     # fi
     echo "ac_cv_lib_Xt_XtToolkitInitialize=yes" > config.site
     export CONFIG_SITE=${PWD}/config.site
+    if [[ "${IS_MINIMAL_R_BUILD:-0}" == "1" ]]; then
+      CONFIGURE_ARGS="--without-x"
+    else
+      CONFIGURE_ARGS="--with-x --with-blas=-lblas --with-lapack=-llapack"
+    fi
     ./configure --prefix=${PREFIX}               \
                 --host=${HOST}                   \
                 --build=${BUILD}                 \
@@ -89,14 +93,12 @@ Linux() {
                 --enable-memory-profiling        \
                 --with-tk-config=${TK_CONFIG}    \
                 --with-tcl-config=${TCL_CONFIG}  \
-                --with-x                         \
                 --with-pic                       \
                 --with-cairo                     \
                 --with-readline                  \
                 --with-recommended-packages=no   \
                 --without-libintl-prefix         \
-                --with-blas=-lblas               \
-                --with-lapack=-llapack           \
+                ${CONFIGURE_ARGS}                \
 		LIBnn=lib || (cat config.log; exit 1)
 
     if cat src/include/config.h | grep "undef HAVE_PANGOCAIRO"; then
@@ -105,11 +107,19 @@ Linux() {
         exit 1
     fi
 
+    make clean
     make -j${CPU_COUNT} ${VERBOSE_AT}
     # echo "Running make check-all, this will take some time ..."
     # make check-all -j1 V=1 > $(uname)-make-check.log 2>&1 || make check-all -j1 V=1 > $(uname)-make-check.2.log 2>&1
 
     make install
+
+    # fail if build did not use external BLAS/LAPACK
+    if [[ -e ${PREFIX}/lib/R/lib/libRblas.so || -e ${PREFIX}/lib/R/lib/libRlapack.so ]]; then
+      echo "Test failed: Detected generic R BLAS/LAPACK"
+      exit 1
+    fi
+
     # Prevent C and C++ extensions from linking to libgfortran.
     sed -i -r 's|(^LDFLAGS = .*)-lgfortran|\1|g' ${PREFIX}/lib/R/etc/Makeconf
 
@@ -145,12 +155,13 @@ Mingw_w64_autotools() {
     ./configure --prefix=${PREFIX}              \
                 --enable-shared                 \
                 --enable-R-shlib                \
-                --enable-BLAS-shlib             \
                 --disable-prebuilt-html         \
                 --enable-memory-profiling       \
                 --with-tk-config=$TK_CONFIG     \
                 --with-tcl-config=$TCL_CONFIG   \
                 --with-x=no                     \
+                --with-blas=-lblas              \
+                --with-lapack=-llapack          \
                 --with-readline=no              \
                 --with-recommended-packages=no  \
                 LIBnn=lib
@@ -314,14 +325,20 @@ Mingw_w64_makefiles() {
     else
       mkdir miktex || true
       pushd miktex
-      MIKTEX_VER=2.9.6942
       # Fetch e.g.:
       # http://ctan.mines-albi.fr/systems/win32/miktex/tm/packages/url.tar.lzma
       # http://ctan.mines-albi.fr/systems/win32/miktex/tm/packages/mptopdf.tar.lzma
       # http://ctan.mines-albi.fr/systems/win32/miktex/tm/packages/inconsolata.tar.lzma
-        curl --insecure -C - -o ${DLCACHE}/miktex-portable-${MIKTEX_VER}.exe -SLO https://miktex.org/download/ctan/systems/win32/miktex/setup/windows-x86/miktex-portable-${MIKTEX_VER}.exe || true
-        echo "Extracting miktex-portable-${MIKTEX_VER}.exe, this will take some time ..."
-        7za x -y ${DLCACHE}/miktex-portable-${MIKTEX_VER}.exe > /dev/null || exit 1
+        # FIXME: Newer MiKTeX installer does not finish on AppVeyor and Azure, somehow.
+        #   MIKTEX_VER=2.9.7100
+        #   curl -C - -o ${DLCACHE}/basic-miktex-${MIKTEX_VER}.exe -SL https://miktex.org/download/ctan/systems/win32/miktex/setup/windows-x86/basic-miktex-${MIKTEX_VER}.exe || true
+        #   echo "Extracting basic-miktex-${MIKTEX_VER}.exe, this will take some time ..."
+        #   ${DLCACHE}/basic-miktex-${MIKTEX_VER}.exe --portable=${PWD} --unattended --no-registry || exit 1
+        # FIXME: Temporary workaround! Fix the above as soon as possible, please.
+        #        Downloading this archived version may not comply with the ToS of archive.org!
+        curl -C - -o ${DLCACHE}/miktex-portable-2.9.6942.exe -SL https://web.archive.org/web/20190325114245/https://mirrors.rit.edu/CTAN/systems/win32/miktex/setup/windows-x86/miktex-portable-2.9.6942.exe || true
+        echo "Extracting miktex-portable-2.9.6942.exe, this will take some time ..."
+        7za x -y ${DLCACHE}/miktex-portable-2.9.6942.exe > /dev/null || exit 1
         # We also need the url, incolsolata and mptopdf packages and
         # do not want a GUI to prompt us about installing these.
         # sed -i 's|AutoInstall=2|AutoInstall=1|g' miktex/config/miktex.ini
@@ -336,6 +353,9 @@ Mingw_w64_makefiles() {
     # R_ARCH looks like an absolute path (e.g. "/x64"), so MSYS2 will convert it.
     # We need to prevent that from happening.
     export MSYS2_ARG_CONV_EXCL="R_ARCH"
+    # Following dlls are not found in the current place. Copy them for now and remove later
+    cp ${PREFIX}/Library/bin/libblas.dll   ${PREFIX}/Library/mingw-w64/bin/libblas.dll
+    cp ${PREFIX}/Library/bin/liblapack.dll ${PREFIX}/Library/mingw-w64/bin/liblapack.dll
     cd "${SRC_DIR}/src/gnuwin32"
     if [[ "${_use_msys2_mingw_w64_tcltk}" == "yes" ]]; then
         # rinstaller and crandir would come after manuals (if it worked with MSYS2/mingw-w64-{tcl,tk}, in which case we'd just use make distribution anyway)
@@ -380,6 +400,9 @@ Mingw_w64_makefiles() {
         # For compilers it is not, since they're put in the build prefix.
         sed -i 's| = \$(BINPREF)| = |g' ${_makeconf}
     done
+    # Remove previously copied file
+    rm ${PREFIX}/Library/mingw-w64/bin/libblas.dll
+    rm ${PREFIX}/Library/mingw-w64/bin/liblapack.dll
 
     return 0
 }
@@ -391,9 +414,6 @@ Darwin() {
     # unknown timezone 'Europe/London'
     # unknown timezone 'GMT'
     # https://stat.ethz.ch/pipermail/r-devel/2014-April/068745.html
-
-#                --with-blas="-framework Accelerate" \
-
 
     # May want to strip these from Makeconf at the end.
     CFLAGS="-isysroot ${CONDA_BUILD_SYSROOT} "${CFLAGS}
@@ -424,10 +444,10 @@ Darwin() {
                 --with-sysroot=${CONDA_BUILD_SYSROOT}  \
                 --enable-shared                     \
                 --enable-R-shlib                    \
-                --enable-BLAS-shlib                 \
                 --with-tk-config=${TK_CONFIG}       \
                 --with-tcl-config=${TCL_CONFIG}     \
-                --with-lapack                       \
+                --with-blas=-lblas                  \
+                --with-lapack=-llapack              \
                 --enable-R-shlib                    \
                 --enable-memory-profiling           \
                 --without-x                         \
@@ -440,36 +460,36 @@ Darwin() {
     sed -i'.bak' 's|-lgobject-2.0 -lglib-2.0 -lintl||g' src/library/grDevices/src/cairo/Makefile
     rm src/library/grDevices/src/cairo/Makefile.bak
 
+    make clean
+    if [[ ${CONDA_BUILD_CROSS_COMPILATION:-0} == 1 ]]; then
+      cp $BUILD_PREFIX/lib/R/doc/NEWS.rds doc/
+      cp $BUILD_PREFIX/lib/R/doc/NEWS.2.rds doc/
+      cp $BUILD_PREFIX/lib/R/doc/NEWS.3.rds doc/
+      cp $BUILD_PREFIX/share/man/man1/R.1 doc/
+      EXTRA_MAKE_ARGS="R_EXE=echo"
+    fi
     make -j${CPU_COUNT} ${VERBOSE_AT} ${EXTRA_MAKE_ARGS}
     # echo "Running make check-all, this will take some time ..."
     # make check-all -j1 V=1 > $(uname)-make-check.log 2>&1
     make install ${EXTRA_MAKE_ARGS}
 
-    # Useful references for macOS R with OpenBLAS:
-    # http://luisspuerto.net/2018/01/install-r-100-homebrew-edition-with-openblas-openmp-my-version/
-    # https://github.com/luisspuerto/homebrew-core/blob/r-3.4.4/Formula/r.rb
-    # Backup the old libR{blas,lapack}.dylib files and replace them with OpenBLAS
-    pushd ${PREFIX}/lib/R/lib
-      # Need to ignore libopenblas run-exports if we keep these around:
-      # mv libRblas.dylib libRblas.dylib.reference
-      # mv libRlapack.dylib libRlapack.dylib.reference
-      cp ../../libblas.dylib libRblas.dylib
-      cp ../../liblapack.dylib libRlapack.dylib
-      ${INSTALL_NAME_TOOL} -id libRblas.dylib libRblas.dylib
-      ${INSTALL_NAME_TOOL} -change @rpath/libopenblas.dylib @rpath/R/lib/libRblas.dylib libR.dylib
-      ${INSTALL_NAME_TOOL} -id libRlapack.dylib libRlapack.dylib
-    popd
-    pushd ${PREFIX}/lib/R/modules
-      ${INSTALL_NAME_TOOL} -change @rpath/libopenblas.dylib @rpath/R/lib/libRblas.dylib lapack.dylib
-    popd
-    pushd ${PREFIX}/lib/R/library/stats/libs
-      ${INSTALL_NAME_TOOL} -change @rpath/libopenblas.dylib @rpath/R/lib/libRblas.dylib stats.dylib
-    popd
+    # fail if build did not use external BLAS/LAPACK
+    if [[ -e ${PREFIX}/lib/R/lib/libRblas.dylib || -e ${PREFIX}/lib/R/lib/libRlapack.dylib ]]; then
+      echo "Test failed: Detected generic R BLAS/LAPACK"
+      exit 1
+    fi
+
+    if [[ "$target_platform" == "osx-arm64" ]]; then
+      # For backwards compatibility
+      ln -sf ${PREFIX}/lib/libblas.dylib ${PREFIX}/lib/R/lib/libRblas.dylib
+      ln -sf ${PREFIX}/lib/liblapack.dylib ${PREFIX}/lib/R/lib/libRlapack.dylib
+    fi
 
     pushd ${PREFIX}/lib/R/etc
-      sed -i -r "s|-isysroot ${CONDA_BUILD_SYSROOT}||g" Makeconf
-      sed -i -r "s|$BUILD_PREFIX/lib/gcc|$PREFIX/lib/gcc|g" Makeconf
-      sed -i -r "s|$BUILD_PREFIX/lib/gcc|$PREFIX/lib/gcc|g" Makeconf-r
+      sed -i'.bak' -r "s|-isysroot ${CONDA_BUILD_SYSROOT}||g" Makeconf
+      sed -i'.bak' -r "s|$BUILD_PREFIX/lib/gcc|$PREFIX/lib/gcc|g" Makeconf
+      sed -i'.bak' -r "s|-lemutls_w||g" Makeconf
+      rm Makeconf.bak
       # See: https://github.com/conda/conda/issues/6701
       chmod g+w Makeconf ldpaths
     popd

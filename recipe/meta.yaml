@@ -1,6 +1,6 @@
 {% set native = 'm2w64-' if win else '' %}
 {% set posix = 'm2-' if win else '' %}
-{% set version = "4.2.0" %}
+{% set version = "4.3.1" %}
 {% set build_number = "0" %}
 
 package:
@@ -9,7 +9,7 @@ package:
 
 source:
   url: https://cran.r-project.org/src/base/R-4/R-{{ version }}.tar.gz
-  sha256: 38eab7719b7ad095388f06aa090c5a2b202791945de60d3e2bb0eab1f5097488
+  sha256: 8dd0bf24f1023c6f618c3b317383d291b4a494f40d73b983ac22ffea99e4ba99
   patches:
     - patches/0001-Darwin-Remove-unicode-elipsis-character-from-grDevic.patch
     - patches/0002-Fix-trio-config.h-include-depth-issue.patch
@@ -17,22 +17,25 @@ source:
     - patches/0004-Win32-Extend-sqrt-NA_real_-hack-to-all-GCC-versions.patch
     - patches/0005-Win32-Prevent-conversion-of-R_ARCH-to-abs-Windows-pa.patch
     - patches/0006-Darwin-Avoid-setting-DYLD_FALLBACK_LIBRARY_PATH.patch
-    - patches/0007a-Use-AC_SEARCH_LIBS-to-search-for-ncursesw-then-ncurs.patch
-    - patches/0007b-Use-AC_SEARCH_LIBS-to-search-for-ncursesw-then-ncurs.patch
+    - patches/0007-Use-AC_SEARCH_LIBS-to-search-for-ncursesw-then-ncurs.patch
     - patches/0008-Linux-Do-not-modify-LD_LIBRARY_PATH.patch
     - patches/0009-javareconf-Do-not-fail-on-compile-fail.patch
     - patches/0010-Revert-part-of-9b818c6dc00143ff18775a4015a3f43b5196f.patch
     - patches/0011-javareconf-macOS-Continue-to-allow-system-Java-lt-9-.patch
-    - patches/0012-Allow-rpath-in-tcltk-dylib-LC_LOAD_DYLIB-command.patch
     - patches/0015-Check-for-changes-then-forcibly-mv-in-javareconf.in.patch
     - patches/0016-Use-LAPACK_LDFLAGS-in-Rlapack_la_LIBADD.patch
+    - patches/0018-Use-sed-from-system.patch
 
 build:
+  skip: true  # [win]
+  merge_build_host: true  # [win]
   number: {{ build_number }}
   rpaths:
     - lib/R/lib/
     - lib/
   no_link:
+    - lib/R/doc/html/packages.html
+
     # These files are modified by R CMD javareconf and can
     # point to different Java implementations in each env.
     - lib/R/etc/Makeconf
@@ -49,13 +52,16 @@ build:
     - $RPATH/libpthread.so.0
     - $RPATH/librt.so.1
   detect_binary_files_with_prefix: true
+
 requirements:
   build:
     - gnuconfig  # [unix]
     - {{ compiler('c') }}                # [not win]
     - {{ compiler('cxx') }}              # [not win]
     - {{ compiler('fortran') }}          # [not win]
-    - m2w64-toolchain                    # [win]
+    - {{ compiler('m2w64_c') }}          # [win]
+    - {{ compiler('m2w64_cxx') }}        # [win]
+    - {{ compiler('m2w64_fortran') }}     # [win]
     - {{ cdt('xorg-x11-proto-devel') }}  # [linux]
     - {{ cdt('libxrender') }}            # [linux]
     - {{ cdt('libxrender-devel') }}      # [linux]
@@ -85,6 +91,7 @@ requirements:
     - {{posix}}automake-wrapper          # [win]
     - {{posix}}automake                  # [not win]
     - make                               # [not win]
+    - libcurl                            # [not win]
     # Duplicated into build due 2 different hosts for windows
     - {{native}}xz                       # [win]
     - {{native}}pcre                     # [win]
@@ -106,7 +113,6 @@ requirements:
     - msys2-conda-epoch                  # [win]
     # This is a hack, strong run_exports should cause this to be added
     - llvm-openmp >=4.0.1                # [osx]
-    #- freetype                           # [not win]
     - readline                           # [not win]
     - libcurl                            # [not win]
     - {{native}}xz
@@ -117,11 +123,9 @@ requirements:
     - {{native}}libjpeg-turbo            # [win]
     - {{native}}jpeg                     # [not win]
     - {{native}}libiconv                 # [not linux]
-#  - {{native}}libuuid                  # [linux]
     - {{native}}gmp                      # [win]
     - {{native}}glib                     # [linux]
     - {{native}}fftw                     # [win]
-    - {{native}}xz                       # [win]
     - {{native}}mpfr                     # [win]
     - {{native}}libsndfile               # [win]
     - {{native}}bwidget
@@ -151,7 +155,6 @@ requirements:
     - {{native}}bzip2                    # [win]
     - {{native}}libjpeg-turbo            # [win]
     - {{native}}libiconv                 # [win]
-#    - {{native}}libuuid                  # [linux]
     - {{native}}gmp                      # [win]
     - {{native}}fftw                     # [win]
     - {{native}}xz                       # [win]
@@ -171,10 +174,17 @@ test:
   commands:
     - R -h
     - R --version
+    - R -e "print(.Platform\$dynlib.ext)"
     - R -e "library('tcltk')"            # [linux]
     - R -e \"library('tcltk')\""         # [win]
     - Rscript --version
     - Rscript -e  'cat("ok\\n")'
+    # Report on the optional features compiled into this build of R.
+    - R -e "capabilities()"              # [not win]
+    - R -e \"capabilities()\""           # [win]
+    # Show third-party graphics software available
+    - R -e "grSoftVersion()"             # [not win]
+    - R -e \"grSoftVersion()\""          # [win]
     # TODO does not work on windows, because winCairo.dll is missing
     - Rscript test-svg.R                 # [not win]
     - open                               # [win]
@@ -186,6 +196,7 @@ test:
     # Prevent regression mentioned in https://github.com/conda-forge/r-base-feedstock/issues/50
     - Rscript -e "stopifnot(capabilities('jpeg'), TRUE)"
     - Rscript -e "stopifnot(capabilities('png'), TRUE)"
+    - if not exist %PREFIX%\\Lib\\R\\bin\\x64\\R.lib exit 1  # [win]
   files:
     - test-svg.R
 

@@ -1,0 +1,24 @@
+From 969b2e7822979ad754854d48d2556e831c06050a Mon Sep 17 00:00:00 2001
+From: "Rafael Martins" <rmartins@anaconda.com>
+Date: Sat, 16 Sep 2023 10:46:50 +0200
+Subject: [PATCH] Use sed from system
+
+---
+ src/scripts/R.sh.in | 4 +---
+ 1 file changed, 1 insertion(+), 3 deletions(-)
+
+diff --git a/src/scripts/R.sh.in b/src/scripts/R.sh.in
+index 43f978f9bc0..2119a37aa98 100644
+--- a/src/scripts/R.sh.in
++++ b/src/scripts/R.sh.in
+@@ -117,9 +117,7 @@ can be placed between R and CMD, to apply to R processes run by 'command'
+
+ Report bugs at <https://bugs.R-project.org>."
+
+-## some systems have a more portable sed, e.g. /usr/xpg4/bin/sed on Solaris,
+-## so make sure that is used.
+-SED=@SED@
++SED=sed
+ export SED
+
+ error () {
