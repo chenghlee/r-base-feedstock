@@ -1,5 +1,30 @@
 #!/bin/bash
 
+# set -u is not welcome in this file
+set -e
+
+if [[ $(uname -s) =~ ^M(SYS|INGW64)_NT-.* ]] ; then
+    for var in $(env | grep -i =c: | sed -e 's/=.*//' | sort) ; do
+	# I see a variable called !C ...
+	case "${var}" in
+	    *[^A-Za-z0-9_]*) ;;
+	    *)
+		eval ${var}=\"$(cygpath -u '${!var}')\"
+		#echo "cygpath: ${var}=${!var}"
+		;;
+	esac
+    done
+
+    for dir in ucrt64 clang64 mingw64 clangarm64 mingw-w64 ; do
+	if [[ -d ${PREFIX}/Library/${dir} ]] ; then
+	    conda_msystem=${dir}
+	    export CONDA_MSYSTEM=${dir^^}
+	    break
+	fi
+    done
+
+fi
+
 aclocal -I m4
 autoconf
 
@@ -140,15 +165,29 @@ Linux() {
 # to an extent, finally falling over due to fd_set references in sys-std.c when
 # it should be compiling sys-win32.c instead. Eventually it would be nice to fix
 # the Autotools build framework so that can be used for Windows builds too.
+
+# ifitchet Oct 2023 update: Pretty much the same.  The Unix build (for
+# that is what it is) will try to build stuff in src/unix (see SUBDIRS
+# in src/Makefile) where, inter alia, it ignores HAVE_SYS_TIMES_H and
+# includes <sys/times.h> which isn't in the mingw-w64 recipes.  It'll
+# also fail on the fd_set stuff as well.
+#
+# You can remove unix from the subdirs but it'll later complain in
+# src/main that R_CRT isn't defined.  R_CRT is defined in
+# src/gnuwin32/fixed/h/config.h which is a hand-crafted file
+# conflicting with, er, everything.
+#
+# The src/gnuwin32 hierarchy is the subdir to use when Building R for
+# Windows, see Mingw_w64_WBI, below
 Mingw_w64_autotools() {
     unset JAVA_HOME
 
     mkdir -p ${PREFIX}/lib
-    export TCL_CONFIG=${PREFIX}/Library/mingw-w64/lib/tclConfig.sh
-    export TK_CONFIG=${PREFIX}/Library/mingw-w64/lib/tkConfig.sh
-    export TCL_LIBRARY=${PREFIX}/Library/mingw-w64/lib/tcl8.6
-    export TK_LIBRARY=${PREFIX}/Library/mingw-w64/lib/tk8.6
-    export CPPFLAGS="${CPPFLAGS} -I${SRC_DIR}/src/gnuwin32/fixed/h"
+    export TCL_CONFIG=${PREFIX}/Library/${conda_msystem}/lib/tclConfig.sh
+    export TK_CONFIG=${PREFIX}/Library/${conda_msystem}/lib/tkConfig.sh
+    export TCL_LIBRARY=${PREFIX}/Library/${conda_msystem}/lib/tcl8.6
+    export TK_LIBRARY=${PREFIX}/Library/${conda_msystem}/lib/tk8.6
+    export CPPFLAGS="-I${SRC_DIR}/src/gnuwin32/fixed/h -I${SRC_DIR}/src/gnuwin32 ${CPPFLAGS}"
     if [[ "${ARCH}" == "64" ]]; then
         export CPPFLAGS="${CPPFLAGS} -DWIN=64 -DMULTI=64"
     fi
@@ -160,19 +199,22 @@ Mingw_w64_autotools() {
                 --with-tk-config=$TK_CONFIG     \
                 --with-tcl-config=$TCL_CONFIG   \
                 --with-x=no                     \
-                --with-blas=-lblas              \
+                --with-blas=-lopenblas          \
                 --with-lapack=-llapack          \
                 --with-readline=no              \
                 --with-recommended-packages=no  \
+		--with-internal-tzcode          \
                 LIBnn=lib
 
-    make -j${CPU_COUNT} ${VERBOSE_AT}
+    make -k -j${CPU_COUNT} ${VERBOSE_AT}
     # echo "Running make check-all, this will take some time ..."
     # make check-all -j1 V=1 > $(uname)-make-check.log 2>&1
     make install
 }
 
 # Use the hand-crafted makefiles.
+
+# ifitchet Oct 2023 update: no attempt was made to land here
 Mingw_w64_makefiles() {
     local _use_msys2_mingw_w64_tcltk=yes
     local _use_w32tex=no
@@ -407,6 +449,68 @@ Mingw_w64_makefiles() {
     return 0
 }
 
+# ifitchet October 2023: WBI - Web Based Instructions
+#
+# https://cran.r-project.org/bin/windows/base/howto-R-devel.html
+# suggests that we should be using the bespoke src/gnuwin32 hierarchy
+# in particular ways.
+#
+# We won't be doing some of it, rsync'ing stuff etc..
+Mingw_w64_WBI() {
+    # unset JAVA_HOME
+
+    # mkdir -p ${PREFIX}/lib
+    export TCL_CONFIG=${PREFIX}/Library/${conda_msystem}/lib/tclConfig.sh
+    export TK_CONFIG=${PREFIX}/Library/${conda_msystem}/lib/tkConfig.sh
+    export TCL_LIBRARY=${PREFIX}/Library/${conda_msystem}/lib/tcl8.6
+    export TK_LIBRARY=${PREFIX}/Library/${conda_msystem}/lib/tk8.6
+    # export CPPFLAGS="-I${SRC_DIR}/src/gnuwin32/fixed/h -I${SRC_DIR}/src/gnuwin32 ${CPPFLAGS}"
+    # if [[ "${ARCH}" == "64" ]]; then
+    #     export CPPFLAGS="${CPPFLAGS} -DWIN=64 -DMULTI=64"
+    # fi
+
+    (
+	set -e
+
+	cd src/gnuwin32
+
+	export TAR_OPTIONS=--force-local
+
+	# We're going to stomp over MkRules.local but, just in case,
+	# save a copy of any existing one.
+	if [[ -f MkRules.local ]] ; then
+	    cp MkRules.local MkRules.local.$(date +%Y%m%d-%H%M%S)
+	fi
+
+	# ICU_PATH is nominally where we have dropped {{native}}icu
+	# however Makefile will use it as -L$(ICU_PATH)/lib/x${ARCH}
+	# -- presumably an artifact of where the rsync'd packages go,
+	# certainly not where MSYS2 packaged libraries go.
+	#
+	# ICU_LIBS is an edit of the default value (MkRules.rules?)
+	# where the defaults are -ls{name} whereas MSYS2 create
+	# -l{name}73 (at current iteration).  We'll also fix the -L
+	# path.
+	#
+	# The same for CURL_PATH/CURL_LIBS where MSYS2 is missing some
+	# libraries vs. Rtools4x.
+	cat <<EOF > MkRules.local
+ICU_PATH = /${conda_msystem}
+# ICU_LIBS ?= -lsicuin -lsicuuc $(EXT_LIBS)/lib/sicudt.a -lstdc++
+ICU_LIBS = -L/${conda_msystem}/bin -licuin73 -licuuc73 -licudt73 -lstdc++
+
+CURL_PATH = /${conda_msystem}
+# CURL_LIBS ?= -lcurl -lbcrypt -lzstd -lrtmp -lssl -lssh2 -lgcrypt -lcrypto -lgdi32 -lz -lws2_32 -lgdi32 -lcrypt32 -lidn2 -lunistring -liconv -lgpg-error -lwldap32 -lwinmm
+CURL_LIBS = -L/${conda_msystem}/bin -lcurl -lbcrypt -lzstd -lssl -lssh2 -lcrypto -lgdi32 -lz -lws2_32 -lgdi32 -lcrypt32 -lidn2 -lunistring -liconv -lwldap32 -lwinmm
+EOF
+
+	make all recommended
+	# echo "Running make check-all, this will take some time ..."
+	# make check-all -j1 V=1 > $(uname)-make-check.log 2>&1
+	make install
+    )
+}
+
 Darwin() {
     unset JAVA_HOME
 
@@ -509,7 +613,8 @@ elif [[ $target_platform =~ .*linux.* ]]; then
   cp "${RECIPE_DIR}"/deactivate-${PKG_NAME}.sh ${PREFIX}/etc/conda/deactivate.d/deactivate-${PKG_NAME}.sh
 elif [[ $target_platform =~ .*win.* ]]; then
   # Mingw_w64_autotools
-  Mingw_w64_makefiles
+  # Mingw_w64_makefiles
+  Mingw_w64_WBI
 fi
 
 

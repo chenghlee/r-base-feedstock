@@ -45,10 +45,11 @@ set SRC_DIR=%SRC_DIR:\=/%
 set MSYSTEM=MINGW%ARCH%
 set MSYS2_PATH_TYPE=inherit
 set CHERE_INVOKING=1
-bash -lc "./build.sh"
+bash -c "./build.sh"
 if errorlevel 1 exit 1
 
-cd "%PREFIX%\lib\R\bin\x64"
+cd "%SRC_DIR%\bin\x64"
+if errorlevel 1 exit 1
 gendef R.dll
 if errorlevel 1 exit 1
 dlltool -d R.def -l R.lib

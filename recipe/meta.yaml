@@ -1,5 +1,5 @@
-{% set native = 'm2w64-' if win else '' %}
-{% set posix = 'm2-' if win else '' %}
+{% set native = 'ucrt64-' if win else '' %}
+{% set posix = 'msys2-' if win else '' %}
 {% set version = "4.3.1" %}
 {% set build_number = "0" %}
 
@@ -27,7 +27,6 @@ source:
     - patches/0018-Use-sed-from-system.patch
 
 build:
-  skip: true  # [win]
   merge_build_host: true  # [win]
   number: {{ build_number }}
   rpaths:
@@ -59,9 +58,9 @@ requirements:
     - {{ compiler('c') }}                # [not win]
     - {{ compiler('cxx') }}              # [not win]
     - {{ compiler('fortran') }}          # [not win]
-    - {{ compiler('m2w64_c') }}          # [win]
-    - {{ compiler('m2w64_cxx') }}        # [win]
-    - {{ compiler('m2w64_fortran') }}     # [win]
+    - {{ compiler('ucrt64_c') }}         # [win]
+    - {{ compiler('ucrt64_cxx') }}       # [win]
+    - {{ compiler('ucrt64_fortran') }}   # [win]
     - {{ cdt('xorg-x11-proto-devel') }}  # [linux]
     - {{ cdt('libxrender') }}            # [linux]
     - {{ cdt('libxrender-devel') }}      # [linux]
@@ -76,19 +75,20 @@ requirements:
     - {{ cdt('libxau') }}                # [linux]
     - {{ cdt('libxau-devel') }}          # [linux]
     - {{ cdt('java-1.7.0-openjdk') }}    # [linux]
-    - {{posix}}pkg-config
+    - {{posix}}pkg-config                # [not win]
+    - {{posix}}pkgconf                   # [win]
     - llvm-openmp >=4.0.1                # [osx]
-    - posix                              # [win]
-    - m2-texinfo-tex                     # [win]
-    - m2-texinfo                         # [win]
-    - m2-curl                            # [win]
-    - m2-p7zip                           # [win]
-    - m2-patch                           # [win]
+    - {{posix}}posix                     # [win]
+    - {{posix}}texinfo-tex               # [win]
+    - {{posix}}texinfo                   # [win]
+    - {{native}}curl                     # [win]
+    - {{posix}}p7zip                     # [win]
+    - {{posix}}patch                     # [win]
     - patch                              # [not win]
     #- texlive-core                       # [unix]
     - texinfo                            # [unix]
-    - {{posix}}autoconf
-    - {{posix}}automake-wrapper          # [win]
+    - {{posix}}autoconf                  # [not win]
+    - {{posix}}autotools                 # [win]
     - {{posix}}automake                  # [not win]
     - make                               # [not win]
     - libcurl                            # [not win]
@@ -99,26 +99,27 @@ requirements:
     - {{native}}tk                       # [win]
     - {{native}}libpng                   # [win]
     - {{native}}libjpeg-turbo            # [win]
-    - {{native}}bzip2 1.0.*              # [win]
+    - {{native}}bzip2                    # [win]
     - {{native}}libiconv                 # [win]
     - {{native}}gmp                      # [win]
     - {{native}}mpfr                     # [win]
     - {{native}}fftw                     # [win]
-    - {{native}}libtiff >=4.0.3,<4.0.8   # [win]
+    - {{native}}libtiff                  # [win]
     - {{native}}libsndfile               # [win]
-    - {{native}}zlib 1.2.8               # [win]
+    - {{native}}zlib                     # [win]
     - {{native}}openblas                 # [win]
+    - {{native}}tools-git                # [win]
 
   host:
-    - msys2-conda-epoch                  # [win]
     # This is a hack, strong run_exports should cause this to be added
     - llvm-openmp >=4.0.1                # [osx]
     - readline                           # [not win]
     - libcurl                            # [not win]
+    - {{native}}curl                     # [win]
     - {{native}}xz
     - {{native}}libpng
     - {{native}}bzip2                    # [not win]
-    - {{native}}bzip2 1.0.*              # [win]
+    - {{native}}bzip2                    # [win]
     - {{native}}cairo                    # [not win]
     - {{native}}libjpeg-turbo            # [win]
     - {{native}}jpeg                     # [not win]
@@ -134,16 +135,15 @@ requirements:
     - {{native}}icu
     - {{native}}pcre2
     - {{native}}tk
-    - {{native}}zlib 1.2.8               # [win]
+    - {{native}}zlib                     # [win]
     - {{native}}zlib                     # [not win]
-    - {{native}}libtiff >=4.0.3,<4.0.8   # [win]
+    - {{native}}libtiff                  # [win]
     - {{native}}libtiff                  # [not win]
     - {{native}}openblas-devel           # [not win]
     - {{native}}openblas                 # [win]
 
   run:
     - _r-mutex 1.* anacondar_1
-    - {{ pin_compatible("msys2-conda-epoch", exact=True) }}  # [win]
     # Needed by R CMD javareconf
     - make                               # [not win]
     - {{ compiler('fortran') }}          # [not win]
@@ -151,7 +151,7 @@ requirements:
     - {{ compiler('c') }}                # [not win]
     - {{ pin_compatible('llvm-openmp', max_pin=None) }}      # [osx]
     - {{native}}gcc-libs                 # [win]
-    - curl                               # [not win]
+    - {{native}}curl
     - {{native}}bzip2                    # [win]
     - {{native}}libjpeg-turbo            # [win]
     - {{native}}libiconv                 # [win]
@@ -172,6 +172,7 @@ requirements:
 
 test:
   commands:
+    - echo %PATH% # [win]
     - R -h
     - R --version
     - R -e "print(.Platform\$dynlib.ext)"
