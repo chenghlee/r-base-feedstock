@@ -174,7 +174,6 @@ requirements:
 
 test:
   commands:
-    - echo %PATH% # [win]
     - R -h
     - R --version
     - R -e "print(.Platform\$dynlib.ext)" # [not win]
