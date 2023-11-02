@@ -457,18 +457,6 @@ Mingw_w64_makefiles() {
 #
 # We won't be doing some of it, rsync'ing stuff etc..
 Mingw_w64_WBI() {
-    # unset JAVA_HOME
-
-    # mkdir -p ${PREFIX}/lib
-    export TCL_CONFIG=${PREFIX}/Library/${conda_msystem}/lib/tclConfig.sh
-    export TK_CONFIG=${PREFIX}/Library/${conda_msystem}/lib/tkConfig.sh
-    export TCL_LIBRARY=${PREFIX}/Library/${conda_msystem}/lib/tcl8.6
-    export TK_LIBRARY=${PREFIX}/Library/${conda_msystem}/lib/tk8.6
-    # export CPPFLAGS="-I${SRC_DIR}/src/gnuwin32/fixed/h -I${SRC_DIR}/src/gnuwin32 ${CPPFLAGS}"
-    # if [[ "${ARCH}" == "64" ]]; then
-    #     export CPPFLAGS="${CPPFLAGS} -DWIN=64 -DMULTI=64"
-    # fi
-
     (
 	set -e
 
@@ -496,7 +484,7 @@ Mingw_w64_WBI() {
 	# libraries vs. Rtools4x.
 	cat <<EOF > MkRules.local
 ICU_PATH = /${conda_msystem}
-# ICU_LIBS ?= -lsicuin -lsicuuc $(EXT_LIBS)/lib/sicudt.a -lstdc++
+# ICU_LIBS ?= -lsicuin -lsicuuc \$(EXT_LIBS)/lib/sicudt.a -lstdc++
 ICU_LIBS = -L/${conda_msystem}/bin -licuin73 -licuuc73 -licudt73 -lstdc++
 
 CURL_PATH = /${conda_msystem}
@@ -504,10 +492,107 @@ CURL_PATH = /${conda_msystem}
 CURL_LIBS = -L/${conda_msystem}/bin -lcurl -lbcrypt -lzstd -lssl -lssh2 -lcrypto -lgdi32 -lz -lws2_32 -lgdi32 -lcrypt32 -lidn2 -lunistring -liconv -lwldap32 -lwinmm
 EOF
 
+	# src/gnuwin32/Makefile notes that vignettes must come after
+	# recommended (even though many of recommended is now split
+	# into separate feedstocks, we still need it here).
 	make all recommended
-	# echo "Running make check-all, this will take some time ..."
-	# make check-all -j1 V=1 > $(uname)-make-check.log 2>&1
-	make install
+
+	# src/gnuwin32/Makefile notes that "make distribution" is "all
+	# cairodevices recommended vignettes manuals rinstaller" and
+	# we've just done all recommended.
+	make cairodevices vignettes
+
+	# manuals requires pdflatex which is WIP
+	make manuals || (
+	    # make ... imagedir won't work without at least one PDF
+	    cp ../../doc/NEWS.pdf ../../doc/manual
+	)
+
+	# We're not building the installer so can exclude rinstaller
+	# however we'll be following along the same path as in
+	# Makefile then installer/Makefile.
+	#
+	# We need to gather all of the R code into a packagable whole.
+	# That starts with the imagedir target then massage the
+	# results, guided by Mingw_w64_makefiles, above.
+	(
+	    set -e
+
+	    cd installer
+
+	    make imagedir
+
+	    # Copied to ${PREFIX}/lib to mirror the unix layout so we
+	    # can use "noarch: generic" packages for any that do not
+	    # require compilation.
+	    mkdir -p "${PREFIX}"/lib/R/Tcl
+
+	    # imagedir will rm -f R-${PKG_VERSION} so we needn't feel
+	    # bad about mv'ing it aside -- remove it first, though, to
+	    # avoid R/R issues when debugging builds!
+	    rm -rf R
+	    mv R-${PKG_VERSION} R
+	    cp -r R "${PREFIX}"/lib
+
+	    # Copy Tcl/Tk support files
+	    . ${PREFIX}/Library/${conda_msystem}/lib/tclConfig.sh
+	    TCL_LIBRARY=${PREFIX}/Library/${conda_msystem}/lib/tcl${TCL_VERSION}
+	    cp -rf ${TCL_LIBRARY} ${PREFIX}/lib/R/Tcl
+
+	    . ${PREFIX}/Library/${conda_msystem}/lib/tkConfig.sh
+	    TK_LIBRARY=${PREFIX}/Library/${conda_msystem}/lib/tk${TK_VERSION}
+	    cp -rf ${TK_LIBRARY} ${PREFIX}/lib/R/Tcl
+
+	    # Remove the recommeded libraries, we package them
+	    # separately as-per the other platforms now.
+	    (
+		set -e
+		cd "${PREFIX}"/lib/R/library
+
+		# RECIPE_DIR .../aggregateR/r-base-feedstock/recipe
+		RD=$(cygpath -u ${RECIPE_DIR})
+		FD=${RD%/*}
+		AR=${FD%/*}
+
+		if [[ -d ${AR} ]] ; then
+		    # Let's dynamically test and remove anything that
+		    # matches a feedstock -- answer: a dozen or so!
+		    for RL in * ; do
+			case "${RL}" in
+			    base) ;;
+			    *)
+				rl=${RL,,}
+				fs=${AR}/r-${rl}-feedstock
+
+				if [[ -e ${fs} ]] ; then
+				    echo "rm -rf lib/R/library/${RL} (is a feedstock)"
+				    rm -rf ${RL}
+				else
+				    echo "keeping lib/R/library/${RL}"
+				fi
+				;;
+			esac
+		    done
+		else
+		    # From Mingw_w64_makefiles, above
+		    rm -rf "${PREFIX}"/lib/R/library/{MASS,lattice,Matrix,nlme,survival,boot,cluster,codetools,foreign,KernSmooth,rpart,class,nnet,spatial,mgcv}
+		fi
+	    )
+	    # * Here we force our MSYS2/mingw-w64 sysroot to be looked
+	    # in for LOCAL_SOFT during r-packages builds (but actually
+	    # this will not work since R will append lib/$(R_ARCH) to
+	    # this in various Makefiles. So long as we set
+	    # build/merge_build_host then they will get found
+	    # automatically)
+	    for _makeconf in $(find "${PREFIX}"/lib/R -name Makeconf); do
+		# For SystemDependencies the host prefix is good.
+		sed -i "s|LOCAL_SOFT = |LOCAL_SOFT = \$(R_HOME)/../../Library/${conda_msystem}|g" ${_makeconf}
+		sed -i "s|^BINPREF ?= .*$|BINPREF ?= \$(R_HOME)/../../Library/${conda_msystem}/bin/|g" ${_makeconf}
+		# For compilers it is not, since they're put in the
+		# build prefix.
+		sed -i 's| = \$(BINPREF)| = |g' ${_makeconf}
+	    done
+	)
     )
 }
 

@@ -120,7 +120,7 @@ requirements:
     - {{native}}libpng
     - {{native}}bzip2                    # [not win]
     - {{native}}bzip2                    # [win]
-    - {{native}}cairo                    # [not win]
+    - {{native}}cairo
     - {{native}}libjpeg-turbo            # [win]
     - {{native}}jpeg                     # [not win]
     - {{native}}libiconv                 # [not linux]
@@ -168,6 +168,8 @@ requirements:
     - {{native}}zlib                     # [win]
     - {{native}}libtiff                  # [win]
     - {{native}}openblas                 # [win]
+    - {{native}}icu                      # [win]
+    - {{native}}pcre2                    # [win]
     - _openmp_mutex                      # [linux and (not ppc64le)]   -- Add comment here?
 
 test:
@@ -175,7 +177,9 @@ test:
     - echo %PATH% # [win]
     - R -h
     - R --version
-    - R -e "print(.Platform\$dynlib.ext)"
+    - R -e "print(.Platform\$dynlib.ext)" # [not win]
+    # windows: Error: unexpected '\\' in "print(.Platform\"
+    - R -e 'print(.Platform$dynlib.ext)' # [win]
     - R -e "library('tcltk')"            # [linux]
     - R -e \"library('tcltk')\""         # [win]
     - Rscript --version
@@ -197,7 +201,7 @@ test:
     # Prevent regression mentioned in https://github.com/conda-forge/r-base-feedstock/issues/50
     - Rscript -e "stopifnot(capabilities('jpeg'), TRUE)"
     - Rscript -e "stopifnot(capabilities('png'), TRUE)"
-    - if not exist %PREFIX%\\Lib\\R\\bin\\x64\\R.lib exit 1  # [win]
+    - if not exist %PREFIX%\\Lib\\R\\bin\\x64\\R.dll exit 1  # [win]
   files:
     - test-svg.R
 
