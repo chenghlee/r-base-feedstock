@@ -460,6 +460,26 @@ Mingw_w64_WBI() {
     (
 	set -e
 
+	# conda install gets sniffy if the target directory exists and
+	# is not empty.
+	R_SRC_TCL_DIR="${SRC_DIR}"/Tcl
+	rm -rf ${R_SRC_TCL_DIR}
+	mkdir -p ${R_SRC_TCL_DIR}
+
+	# Mingw_w64_makefiles copies the contents of Tcl/Tk
+	# dependencies (which means we don't need to figure out what
+	# is Tcl/Tk in our own environment's dependencies).
+	CONDA_SUBDIR=$target_platform "${SYS_PYTHON}" \
+				      -m conda install \
+				      --no-deps --yes --copy \
+				      --prefix ${R_SRC_TCL_DIR} \
+				      ${conda_msystem}-{tcl,tk}
+
+	# In essence, we want everything from MSYS2-land up a couple
+	# of directories, deleting any conda artifacts.
+	mv ${R_SRC_TCL_DIR}/Library/${conda_msystem}/* ${R_SRC_TCL_DIR}/ || exit 1
+	rm -Rf ${R_SRC_TCL_DIR}/{Library,conda-meta}
+
 	cd src/gnuwin32
 
 	export TAR_OPTIONS=--force-local
@@ -508,6 +528,10 @@ EOF
 	    cp ../../doc/NEWS.pdf ../../doc/manual
 	)
 
+	# Test the installation
+	make check-all
+
+
 	# We're not building the installer so can exclude rinstaller
 	# however we'll be following along the same path as in
 	# Makefile then installer/Makefile.
@@ -534,14 +558,14 @@ EOF
 	    mv R-${PKG_VERSION} R
 	    cp -r R "${PREFIX}"/lib
 
-	    # Copy Tcl/Tk support files
-	    . ${PREFIX}/Library/${conda_msystem}/lib/tclConfig.sh
-	    TCL_LIBRARY=${PREFIX}/Library/${conda_msystem}/lib/tcl${TCL_VERSION}
-	    cp -rf ${TCL_LIBRARY} ${PREFIX}/lib/R/Tcl
+	    # # Copy Tcl/Tk support files
+	    # . ${PREFIX}/Library/${conda_msystem}/lib/tclConfig.sh
+	    # TCL_LIBRARY=${PREFIX}/Library/${conda_msystem}/lib/tcl${TCL_VERSION}
+	    # cp -rf ${TCL_LIBRARY} ${PREFIX}/lib/R/Tcl
 
-	    . ${PREFIX}/Library/${conda_msystem}/lib/tkConfig.sh
-	    TK_LIBRARY=${PREFIX}/Library/${conda_msystem}/lib/tk${TK_VERSION}
-	    cp -rf ${TK_LIBRARY} ${PREFIX}/lib/R/Tcl
+	    # . ${PREFIX}/Library/${conda_msystem}/lib/tkConfig.sh
+	    # TK_LIBRARY=${PREFIX}/Library/${conda_msystem}/lib/tk${TK_VERSION}
+	    # cp -rf ${TK_LIBRARY} ${PREFIX}/lib/R/Tcl
 
 	    # Remove the recommeded libraries, we package them
 	    # separately as-per the other platforms now.
