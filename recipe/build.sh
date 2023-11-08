@@ -19,6 +19,13 @@ if [[ $(uname -s) =~ ^M(SYS|INGW64)_NT-.* ]] ; then
 	if [[ -d ${PREFIX}/Library/${dir} ]] ; then
 	    conda_msystem=${dir}
 	    export CONDA_MSYSTEM=${dir^^}
+
+	    pkg_prefix=${conda_msystem}
+	    case "${conda_msystem}" in
+		mingw-w64)
+		    pkg_prefix=m2w64
+		    ;;
+	    esac
 	    break
 	fi
     done
@@ -473,7 +480,7 @@ Mingw_w64_WBI() {
 				      -m conda install \
 				      --no-deps --yes --copy \
 				      --prefix ${R_SRC_TCL_DIR} \
-				      ${conda_msystem}-{tcl,tk}
+				      ${pkg_prefix}-{tcl,tk}
 
 	# In essence, we want everything from MSYS2-land up a couple
 	# of directories, deleting any conda artifacts.
