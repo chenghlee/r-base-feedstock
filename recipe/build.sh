@@ -565,14 +565,8 @@ EOF
 	    mv R-${PKG_VERSION} R
 	    cp -r R "${PREFIX}"/lib
 
-	    # # Copy Tcl/Tk support files
-	    # . ${PREFIX}/Library/${conda_msystem}/lib/tclConfig.sh
-	    # TCL_LIBRARY=${PREFIX}/Library/${conda_msystem}/lib/tcl${TCL_VERSION}
-	    # cp -rf ${TCL_LIBRARY} ${PREFIX}/lib/R/Tcl
-
-	    # . ${PREFIX}/Library/${conda_msystem}/lib/tkConfig.sh
-	    # TK_LIBRARY=${PREFIX}/Library/${conda_msystem}/lib/tk${TK_VERSION}
-	    # cp -rf ${TK_LIBRARY} ${PREFIX}/lib/R/Tcl
+	    # Copy Tcl/Tk support files
+	    cp -rf ${R_SRC_TCL_DIR} ${PREFIX}/lib/R
 
 	    # Remove the recommeded libraries, we package them
 	    # separately as-per the other platforms now.
