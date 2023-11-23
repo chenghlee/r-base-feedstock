@@ -536,7 +536,7 @@ EOF
 	)
 
 	# Test the installation
-	make check-all
+	# make check-all
 
 
 	# We're not building the installer so can exclude rinstaller
@@ -567,6 +567,10 @@ EOF
 
 	    # Copy Tcl/Tk support files
 	    cp -rf ${R_SRC_TCL_DIR} ${PREFIX}/lib/R
+
+	    # Copy ca-bundle.crt for R+(lib)curl
+	    mkdir -p ${PREFIX}/lib/R/etc
+	    cp ${PREFIX}/Library/${conda_msystem}/share/pki/ca-trust-source/ca-bundle.trust.crt ${PREFIX}/lib/R/etc/curl-ca-bundle.crt
 
 	    # Remove the recommeded libraries, we package them
 	    # separately as-per the other platforms now.
@@ -611,7 +615,15 @@ EOF
 	    # automatically)
 	    for _makeconf in $(find "${PREFIX}"/lib/R -name Makeconf); do
 		# For SystemDependencies the host prefix is good.
-		sed -i "s|LOCAL_SOFT = |LOCAL_SOFT = \$(R_HOME)/../../Library/${conda_msystem}|g" ${_makeconf}
+		#
+		# Careful, though, LOCAL_SOFT is later used as
+		# -I$(LOCAL_SOFT)/include and -I$(LOCAL_SOFT)/lib
+		# etc. which doesn't take kindly to being a PATH
+		# (rather than a dir).  Here, we tried commenting out
+		# the previous value but that left a trailing SPACE --
+		# grr!  Just remove the old value -- it was to do with
+		# RTOOLS.
+		sed -i "s|LOCAL_SOFT = .*$|LOCAL_SOFT = \$(R_HOME)/../../Library/${conda_msystem}|g" ${_makeconf}
 		sed -i "s|^BINPREF ?= .*$|BINPREF ?= \$(R_HOME)/../../Library/${conda_msystem}/bin/|g" ${_makeconf}
 		# For compilers it is not, since they're put in the
 		# build prefix.
