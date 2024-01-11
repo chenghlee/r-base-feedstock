@@ -407,6 +407,229 @@ Mingw_w64_makefiles() {
     return 0
 }
 
+# ifitchet October 2023: WBI - Web Based Instructions
+#
+# https://cran.r-project.org/bin/windows/base/howto-R-devel.html
+# suggests that we should be using the bespoke src/gnuwin32 hierarchy
+# in particular ways.
+#
+# We won't be doing some of it, rsync'ing stuff etc..
+Mingw_w64_WBI() {
+    set -e
+
+    # R needs an instance of TCL, Tk and friends which we can use
+    # conda install and a custom install directory to do the honours
+    # for us.
+
+    # conda install gets sniffy if the target directory exists and is
+    # not empty.
+    R_SRC_TCL_DIR="${SRC_DIR}"/Tcl
+    rm -rf ${R_SRC_TCL_DIR}
+    mkdir -p ${R_SRC_TCL_DIR}
+
+    # Set pkg_prefix to ucrt64 or m2w64 depending on whether you're
+    # using new MSYS2 UCRT64 or old MSYS2 MINGW64(?) packages.
+    pkg_prefix=ucrt64
+    case "${pkg_prefix}" in
+	m2w64)
+	    msys2_base=mingw-w64
+	    ;;
+	*)
+	    msys2_base=${pkg_prefix}
+	    ;;
+    esac
+
+    CONDA_SUBDIR=$target_platform "${SYS_PYTHON}" \
+				  -m conda install \
+				  --no-deps --yes --copy \
+				  --prefix ${R_SRC_TCL_DIR} \
+				  ${pkg_prefix}-{tcl,tk,bwidget,tktable}
+
+    # In essence, we want everything from MSYS2-land up a couple of
+    # directories, deleting any conda artifacts.
+    mv ${R_SRC_TCL_DIR}/Library/${msys2_base}/* ${R_SRC_TCL_DIR}/ || exit 1
+    rm -Rf ${R_SRC_TCL_DIR}/{Library,conda-meta}
+
+    cd src/gnuwin32
+
+    export TAR_OPTIONS=--force-local
+
+    # LOCAL_SOFT defaults to the location of ${CC}, see MkRules.rules,
+    # but we want it such that for the packages in defaults
+    # -I"${LOCAL_SOFT}"/include expands to -I/include and
+    # -L${LOCAL_SOFT}/lib/x64 finds the DLLs (where we copied them
+    # from /bin in bld.bat).
+    #
+    # Beware using ${LIBRARY_PREFIX}/bin for anything as that *may* be
+    # hidden by MSYS2 mounting /usr/bin over /bin.
+    #
+    # Note further, that LOCAL_SOFT = <empty>, although it notionally
+    # generates the same effect, /include etc., isn't always thrown
+    # through the remapping process and gcc won't see the DLLs in
+    # -L/lib/x64.
+
+    # EXT_LIBS ?= ${LOCAL_SOFT} (MkRules.rules) and
+    # src/main/Makefile.win uses dounzip-CPPFLAGS =
+    # -I$(EXT_LIBS)/include which fails to find bzlib.h unless we
+    # explicitly set EXT_LIBS here.  Note, set to the empty string and
+    # not /
+
+    # ICU_PATH is nominally where we have dropped {{native}}icu
+    # however Makefile will use it as -L$(ICU_PATH)/lib/x${ARCH} --
+    # presumably an artifact of where the rsync'd packages go,
+    # certainly not where MSYS2 packaged libraries go.
+
+    # ICU_PATH = / generates:
+    # registryTZ.c:24:10: fatal error: unicode/ucal.h: No such file or directory
+
+    # ICU_LIBS is an edit of the default value (MkRules.rules?)  where
+    # the defaults are -ls{name} whereas MSYS2 create -l{name}73 (at
+    # current iteration).  We'll also fix the -L path.
+    #
+    # The same for CURL_PATH/CURL_LIBS where MSYS2 is missing some
+    # libraries vs. Rtools4x.
+
+    # CURL_PATH = / generates:
+    # libcurl.c:48:4: error: #error libcurl 7.28.0 or later is required.
+
+    cat <<EOF > MkRules.local
+
+LOCAL_SOFT = ${LIBRARY_PREFIX}
+
+EXT_LIBS =
+
+ICU_PATH =
+
+# ICU_LIBS ?= -lsicuin -lsicuuc \$(EXT_LIBS)/lib/sicudt.a -lstdc++
+ICU_LIBS = -L/bin -licuin73 -licuuc73 -licudt73 -lstdc++
+
+CURL_PATH =
+# CURL_LIBS ?= -lcurl -lbcrypt -lzstd -lrtmp -lssl -lssh2 -lgcrypt -lcrypto -lgdi32 -lz -lws2_32 -lgdi32 -lcrypt32 -lidn2 -lunistring -liconv -lgpg-error -lwldap32 -lwinmm
+CURL_LIBS = -L/bin -lcurl -lbcrypt -lzstd -lssl-3-x64 -lssh2 -lcrypto-3-x64 -lgdi32 -lz -lws2_32 -lgdi32 -lcrypt32 -lidn2 -lunistring -liconv -lwldap32 -lwinmm
+EOF
+
+    # During a build (under MSYS2) we still need to find the conda
+    # packages from defaults DLLs, use the copy we made in bld.bat
+    PATH=${PATH}:${LIBRARY_PREFIX}/lib/x64
+
+    # src/gnuwin32/Makefile notes that vignettes must come after
+    # recommended (even though many of recommended is now split into
+    # separate feedstocks, we still need it here).
+    make all recommended
+
+    # src/gnuwin32/Makefile notes that "make distribution" is "all
+    # cairodevices recommended vignettes manuals rinstaller" and we've
+    # just done all recommended.
+    make cairodevices recommended vignettes
+
+    # manuals requires pdflatex which is WIP
+    make manuals || (
+	# make ... imagedir won't work without at least one PDF
+	cp ../../doc/NEWS.pdf ../../doc/manual
+    )
+
+    # Test the installation
+    # make check-all
+
+
+    # We're not building the installer so can exclude rinstaller
+    # however we'll be following along the same path as in Makefile
+    # then installer/Makefile.
+    #
+    # We need to gather all of the R code into a packagable whole.
+    # That starts with the imagedir target then massage the results,
+    # guided by Mingw_w64_makefiles, above.
+    (
+	set -e
+
+	cd installer
+
+	make imagedir
+
+	# Copied to ${PREFIX}/lib to mirror the unix layout so we can
+	# use "noarch: generic" packages for any that do not require
+	# compilation.
+	mkdir -p "${PREFIX}"/lib/R/Tcl
+
+	# imagedir will rm -f R-${PKG_VERSION} so we needn't feel bad
+	# about mv'ing it aside -- remove it first, though, to avoid
+	# R/R issues when debugging builds!
+	rm -rf R
+	mv R-${PKG_VERSION} R
+	cp -r R "${PREFIX}"/lib
+
+	# Copy Tcl/Tk support files
+	cp -rf ${R_SRC_TCL_DIR} ${PREFIX}/lib/R
+
+	# Copy ca-bundle.crt for R+(lib)curl
+	mkdir -p ${PREFIX}/lib/R/etc
+	if [[ -d ${PREFIX}/Library/${msys2_base}/share/pki ]] ; then
+	    cp ${PREFIX}/Library/${msys2_base}/share/pki/ca-trust-source/ca-bundle.trust.crt ${PREFIX}/lib/R/etc/curl-ca-bundle.crt
+	elif [[ -d ${PREFIX}/Library/ssl ]] ; then
+	    cp ${PREFIX}/Library/ssl/cacert.pem ${PREFIX}/lib/R/etc/curl-ca-bundle.crt
+	else
+	    echo "ERROR: no certificate bundle?" >&2
+	    exit 1
+	fi
+
+	# Remove the recommeded libraries, we package them separately
+	# as-per the other platforms now.
+	(
+	    set -e
+	    cd "${PREFIX}"/lib/R/library
+
+	    # RECIPE_DIR .../aggregateR/r-base-feedstock/recipe
+	    RD=$(cygpath -u ${RECIPE_DIR})
+	    FD=${RD%/*}
+	    AR=${FD%/*}
+
+	    if [[ -d ${AR} ]] ; then
+		# Let's dynamically test and remove anything that
+		# matches a feedstock -- answer: a dozen or so!
+		for RL in * ; do
+		    case "${RL}" in
+			base) ;;
+			*)
+			    rl=${RL,,}
+			    fs=${AR}/r-${rl}-feedstock
+
+			    if [[ -e ${fs} ]] ; then
+				echo "rm -rf lib/R/library/${RL} (is a feedstock)"
+				rm -rf ${RL}
+			    else
+				echo "keeping lib/R/library/${RL}"
+			    fi
+			    ;;
+		    esac
+		done
+	    else
+		# From Mingw_w64_makefiles, above
+		rm -rf "${PREFIX}"/lib/R/library/{MASS,lattice,Matrix,nlme,survival,boot,cluster,codetools,foreign,KernSmooth,rpart,class,nnet,spatial,mgcv}
+	    fi
+	)
+	# * Here we force our MSYS2/mingw-w64 sysroot to be looked in
+	# for LOCAL_SOFT during r-packages builds (but actually this
+	# will not work since R will append lib/$(R_ARCH) to this in
+	# various Makefiles. So long as we set build/merge_build_host
+	# then they will get found automatically)
+	for _makeconf in $(find "${PREFIX}"/lib/R -name Makeconf); do
+	    # For SystemDependencies the host prefix is good.
+	    #
+	    # Careful, though, LOCAL_SOFT is later used as
+	    # -I"$(LOCAL_SOFT)"/include and -I"$(LOCAL_SOFT)"/lib
+	    # etc. which doesn't take kindly to being a PATH (rather
+	    # than a dir).  Just replace the old value -- it was to do
+	    # with RTOOLS.
+	    sed -i "s|LOCAL_SOFT = .*$|LOCAL_SOFT = ${LIBRARY_PREFIX}|g" ${_makeconf}
+	    #sed -i "s|^BINPREF ?= .*$|BINPREF ?= \$(R_HOME)/../../Library/${pkg_prefix}/bin/|g" ${_makeconf}
+
+	    # For compilers it is not, since they're put in the build
+	    # prefix.
+	    sed -i 's| = \$(BINPREF)| = |g' ${_makeconf}
+	done
+    )
+}
+
 Darwin() {
     unset JAVA_HOME
 
@@ -509,7 +732,8 @@ elif [[ $target_platform =~ .*linux.* ]]; then
   cp "${RECIPE_DIR}"/deactivate-${PKG_NAME}.sh ${PREFIX}/etc/conda/deactivate.d/deactivate-${PKG_NAME}.sh
 elif [[ $target_platform =~ .*win.* ]]; then
   # Mingw_w64_autotools
-  Mingw_w64_makefiles
+  # Mingw_w64_makefiles
+  Mingw_w64_WBI
 fi
 
 

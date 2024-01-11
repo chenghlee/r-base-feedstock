@@ -39,16 +39,29 @@ if errorlevel 1 exit 1
 copy launcher.exe "%PREFIX%\Scripts\open.exe"
 if errorlevel 1 exit 1
 
+@REM MSYS2 will mount /usr/bin over /bin which means we'll lose sight
+@REM of all of the conda package DLLs.  We can copy them to somewhere
+@REM where the R code will look during a build,
+@REM -L"${LOCAL_SOFT}"/lib/x64, and at runtime MSYS2 won't be getting
+@REM in the way and the native code will find the DLLs in
+@REM ${LIBRARY_PREFIX}/bin as normal.
+if not exist %LIBRARY_PREFIX%\lib\x64 (
+  md %LIBRARY_PREFIX%\lib\x64
+  copy %LIBRARY_PREFIX%\bin\* %LIBRARY_PREFIX%\lib\x64
+)
+if errorlevel 1 exit 1
+
 copy "%RECIPE_DIR%\build.sh" .
 set PREFIX=%PREFIX:\=/%
 set SRC_DIR=%SRC_DIR:\=/%
 set MSYSTEM=MINGW%ARCH%
 set MSYS2_PATH_TYPE=inherit
 set CHERE_INVOKING=1
-bash -lc "./build.sh"
+bash -c "./build.sh"
 if errorlevel 1 exit 1
 
 cd "%PREFIX%\lib\R\bin\x64"
+if errorlevel 1 exit 1
 gendef R.dll
 if errorlevel 1 exit 1
 dlltool -d R.def -l R.lib
