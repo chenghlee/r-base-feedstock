@@ -60,6 +60,11 @@ set CHERE_INVOKING=1
 bash -c "./build.sh"
 if errorlevel 1 exit 1
 
+@REM We don't install anything in Library (R goes into lib) so
+@REM safe to delete the whole tree
+del /f /s /q %LIBRARY_PREFIX%\lib\x64
+if errorlevel 1 exit 1
+
 cd "%PREFIX%\lib\R\bin\x64"
 if errorlevel 1 exit 1
 gendef R.dll
