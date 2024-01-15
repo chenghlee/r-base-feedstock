@@ -427,15 +427,27 @@ Mingw_w64_WBI() {
     rm -rf ${R_SRC_TCL_DIR}
     mkdir -p ${R_SRC_TCL_DIR}
 
-    # Set pkg_prefix to ucrt64 or m2w64 depending on whether you're
-    # using new MSYS2 UCRT64 or old MSYS2 MINGW64(?) packages.
-    pkg_prefix=ucrt64
-    case "${pkg_prefix}" in
+    # Set pkg_source to defaults or ucrt64 or m2w64 depending on
+    # whether you're using defaults, new MSYS2 UCRT64 or old MSYS2
+    # MINGW64(?)  packages.
+    pkg_source=defaults
+    case "${pkg_source}" in
+	defaults)
+	    pkg_prefix=
+	    pkg_install_base=
+
+	    # defaults has both TCL and Tk in tk-feedstock
+	    pkgs=tk
+	    ;;
 	m2w64)
-	    msys2_base=mingw-w64
+	    pkg_prefix=${pkg_source}-
+	    pkg_install_base=mingw-w64/
+	    pkgs="{tcl,tk,bwidget,tktable}"
 	    ;;
 	*)
-	    msys2_base=${pkg_prefix}
+	    pkg_prefix=${pkg_source}-
+	    pkg_install_base=${pkg_prefix}/
+	    pkgs="{tcl,tk}"
 	    ;;
     esac
 
@@ -443,11 +455,11 @@ Mingw_w64_WBI() {
 				  -m conda install \
 				  --no-deps --yes --copy \
 				  --prefix ${R_SRC_TCL_DIR} \
-				  ${pkg_prefix}-{tcl,tk,bwidget,tktable}
+				  ${pkg_prefix}${pkgs}
 
     # In essence, we want everything from MSYS2-land up a couple of
     # directories, deleting any conda artifacts.
-    mv ${R_SRC_TCL_DIR}/Library/${msys2_base}/* ${R_SRC_TCL_DIR}/ || exit 1
+    mv ${R_SRC_TCL_DIR}/Library/${pkg_install_base}* ${R_SRC_TCL_DIR}/ || exit 1
     rm -Rf ${R_SRC_TCL_DIR}/{Library,conda-meta}
 
     cd src/gnuwin32
@@ -539,95 +551,92 @@ EOF
     # We need to gather all of the R code into a packagable whole.
     # That starts with the imagedir target then massage the results,
     # guided by Mingw_w64_makefiles, above.
+    cd installer
+
+    make imagedir
+
+    # Copied to ${PREFIX}/lib to mirror the unix layout so we can use
+    # "noarch: generic" packages for any that do not require
+    # compilation.
+    mkdir -p "${PREFIX}"/lib/R/Tcl
+
+    # imagedir will rm -f R-${PKG_VERSION} so we needn't feel bad
+    # about mv'ing it aside -- remove it first, though, to avoid R/R
+    # issues when debugging builds!
+    rm -rf R
+    mv R-${PKG_VERSION} R
+    cp -r R "${PREFIX}"/lib
+
+    # Copy Tcl/Tk support files
+    cp -rf ${R_SRC_TCL_DIR} ${PREFIX}/lib/R
+
+    # Copy ca-bundle.crt for R+(lib)curl
+    mkdir -p ${PREFIX}/lib/R/etc
+    if [[ -d ${PREFIX}/Library/${pkg_install_base}share/pki ]] ; then
+	cp ${PREFIX}/Library/${pkg_install_base}share/pki/ca-trust-source/ca-bundle.trust.crt ${PREFIX}/lib/R/etc/curl-ca-bundle.crt
+    elif [[ -d ${PREFIX}/Library/ssl ]] ; then
+	cp ${PREFIX}/Library/ssl/cacert.pem ${PREFIX}/lib/R/etc/curl-ca-bundle.crt
+    else
+	echo "ERROR: no certificate bundle?" >&2
+	exit 1
+    fi
+
+    # Remove the recommeded libraries, we package them separately
+    # as-per the other platforms now.
     (
 	set -e
+	cd "${PREFIX}"/lib/R/library
 
-	cd installer
+	# RECIPE_DIR .../aggregateR/r-base-feedstock/recipe
+	RD=$(cygpath -u ${RECIPE_DIR})
+	FD=${RD%/*}
+	AR=${FD%/*}
 
-	make imagedir
+	if [[ -d ${AR} ]] ; then
+	    # Let's dynamically test and remove anything that
+	    # matches a feedstock -- answer: a dozen or so!
+	    for RL in * ; do
+		case "${RL}" in
+		    base) ;;
+		    *)
+			rl=${RL,,}
+			fs=${AR}/r-${rl}-feedstock
 
-	# Copied to ${PREFIX}/lib to mirror the unix layout so we can
-	# use "noarch: generic" packages for any that do not require
-	# compilation.
-	mkdir -p "${PREFIX}"/lib/R/Tcl
-
-	# imagedir will rm -f R-${PKG_VERSION} so we needn't feel bad
-	# about mv'ing it aside -- remove it first, though, to avoid
-	# R/R issues when debugging builds!
-	rm -rf R
-	mv R-${PKG_VERSION} R
-	cp -r R "${PREFIX}"/lib
-
-	# Copy Tcl/Tk support files
-	cp -rf ${R_SRC_TCL_DIR} ${PREFIX}/lib/R
-
-	# Copy ca-bundle.crt for R+(lib)curl
-	mkdir -p ${PREFIX}/lib/R/etc
-	if [[ -d ${PREFIX}/Library/${msys2_base}/share/pki ]] ; then
-	    cp ${PREFIX}/Library/${msys2_base}/share/pki/ca-trust-source/ca-bundle.trust.crt ${PREFIX}/lib/R/etc/curl-ca-bundle.crt
-	elif [[ -d ${PREFIX}/Library/ssl ]] ; then
-	    cp ${PREFIX}/Library/ssl/cacert.pem ${PREFIX}/lib/R/etc/curl-ca-bundle.crt
+			if [[ -e ${fs} ]] ; then
+			    echo "rm -rf lib/R/library/${RL} (is a feedstock)"
+			    rm -rf ${RL}
+			else
+			    echo "keeping lib/R/library/${RL}"
+			fi
+			;;
+		esac
+	    done
 	else
-	    echo "ERROR: no certificate bundle?" >&2
-	    exit 1
+	    # From Mingw_w64_makefiles, above
+	    rm -rf "${PREFIX}"/lib/R/library/{MASS,lattice,Matrix,nlme,survival,boot,cluster,codetools,foreign,KernSmooth,rpart,class,nnet,spatial,mgcv}
 	fi
-
-	# Remove the recommeded libraries, we package them separately
-	# as-per the other platforms now.
-	(
-	    set -e
-	    cd "${PREFIX}"/lib/R/library
-
-	    # RECIPE_DIR .../aggregateR/r-base-feedstock/recipe
-	    RD=$(cygpath -u ${RECIPE_DIR})
-	    FD=${RD%/*}
-	    AR=${FD%/*}
-
-	    if [[ -d ${AR} ]] ; then
-		# Let's dynamically test and remove anything that
-		# matches a feedstock -- answer: a dozen or so!
-		for RL in * ; do
-		    case "${RL}" in
-			base) ;;
-			*)
-			    rl=${RL,,}
-			    fs=${AR}/r-${rl}-feedstock
-
-			    if [[ -e ${fs} ]] ; then
-				echo "rm -rf lib/R/library/${RL} (is a feedstock)"
-				rm -rf ${RL}
-			    else
-				echo "keeping lib/R/library/${RL}"
-			    fi
-			    ;;
-		    esac
-		done
-	    else
-		# From Mingw_w64_makefiles, above
-		rm -rf "${PREFIX}"/lib/R/library/{MASS,lattice,Matrix,nlme,survival,boot,cluster,codetools,foreign,KernSmooth,rpart,class,nnet,spatial,mgcv}
-	    fi
-	)
-	# * Here we force our MSYS2/mingw-w64 sysroot to be looked in
-	# for LOCAL_SOFT during r-packages builds (but actually this
-	# will not work since R will append lib/$(R_ARCH) to this in
-	# various Makefiles. So long as we set build/merge_build_host
-	# then they will get found automatically)
-	for _makeconf in $(find "${PREFIX}"/lib/R -name Makeconf); do
-	    # For SystemDependencies the host prefix is good.
-	    #
-	    # Careful, though, LOCAL_SOFT is later used as
-	    # -I"$(LOCAL_SOFT)"/include and -I"$(LOCAL_SOFT)"/lib
-	    # etc. which doesn't take kindly to being a PATH (rather
-	    # than a dir).  Just replace the old value -- it was to do
-	    # with RTOOLS.
-	    sed -i "s|LOCAL_SOFT = .*$|LOCAL_SOFT = ${LIBRARY_PREFIX}|g" ${_makeconf}
-	    #sed -i "s|^BINPREF ?= .*$|BINPREF ?= \$(R_HOME)/../../Library/${pkg_prefix}/bin/|g" ${_makeconf}
-
-	    # For compilers it is not, since they're put in the build
-	    # prefix.
-	    sed -i 's| = \$(BINPREF)| = |g' ${_makeconf}
-	done
     )
+
+    # * Here we force our MSYS2/mingw-w64 sysroot to be looked in for
+    # LOCAL_SOFT during r-packages builds (but actually this will not
+    # work since R will append lib/$(R_ARCH) to this in various
+    # Makefiles. So long as we set build/merge_build_host then they
+    # will get found automatically)
+    for _makeconf in $(find "${PREFIX}"/lib/R -name Makeconf); do
+	# For SystemDependencies the host prefix is good.
+	#
+	# Careful, though, LOCAL_SOFT is later used as
+	# -I"$(LOCAL_SOFT)"/include and -I"$(LOCAL_SOFT)"/lib
+	# etc. which doesn't take kindly to being a PATH (rather than
+	# a dir).  Just replace the old value -- it was to do with
+	# RTOOLS.
+	sed -i "s|LOCAL_SOFT = .*$|LOCAL_SOFT = ${LIBRARY_PREFIX}|g" ${_makeconf}
+	sed -i "s|^BINPREF ?= .*$|BINPREF ?= \$(R_HOME)/../../Library/${pkg_install_base}bin/|g" ${_makeconf}
+
+	# For compilers it is not, since they're put in the build
+	# prefix.
+	sed -i 's| = \$(BINPREF)| = |g' ${_makeconf}
+    done
 }
 
 Darwin() {
