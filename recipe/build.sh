@@ -415,7 +415,7 @@ Mingw_w64_makefiles() {
 #
 # We won't be doing some of it, rsync'ing stuff etc..
 Mingw_w64_WBI() {
-    set -e
+    set -eu
 
     # R needs an instance of TCL, Tk and friends which we can use
     # conda install and a custom install directory to do the honours
@@ -433,21 +433,18 @@ Mingw_w64_WBI() {
     pkg_source=defaults
     case "${pkg_source}" in
 	defaults)
-	    pkg_prefix=
 	    pkg_install_base=
 
 	    # defaults has both TCL and Tk in tk-feedstock
-	    pkgs=tk
+	    pkgs=( {tk,bwidget,tktable} )
 	    ;;
 	m2w64)
-	    pkg_prefix=${pkg_source}-
 	    pkg_install_base=mingw-w64/
-	    pkgs="{tcl,tk,bwidget,tktable}"
+	    pkgs=( ${pkg_source}-{tcl,tk,bwidget,tktable} )
 	    ;;
 	*)
-	    pkg_prefix=${pkg_source}-
-	    pkg_install_base=${pkg_prefix}/
-	    pkgs="{tcl,tk}"
+	    pkg_install_base=${pkg_source}/
+	    pkgs=( ${pkg_source}-{tcl,tk,bwidget,tktable} )
 	    ;;
     esac
 
@@ -455,8 +452,43 @@ Mingw_w64_WBI() {
 				  -m conda install \
 				  --no-deps --yes --copy \
 				  --prefix ${R_SRC_TCL_DIR} \
-				  ${pkg_prefix}${pkgs}
+				  ${pkgs[*]}
 
+    case "${pkg_source}" in
+	defaults)
+	    # The tk-feedstock recipe renames the Xt.exe files to
+	    # X.exe but doesn't do the same for the Xt.dll files
+	    (
+		set -eu
+
+		. ${R_SRC_TCL_DIR}/Library/lib/tclConfig.sh
+
+		tcl_dll_base=${R_SRC_TCL_DIR}/Library/bin/tcl${TCL_MAJOR_VERSION}${TCL_MINOR_VERSION}
+		tcl_dll=${tcl_dll_base}.dll
+		tcl_tdll=${tcl_dll_base}t.dll
+
+		if [[ ! -f ${tcl_dll} ]] ; then
+		    if [[ -f ${tcl_tdll} ]] ; then
+			cp ${tcl_tdll} ${tcl_dll}
+		    else
+			echo "WARNING: no ${tcl_tdll}" >&2
+		    fi
+		fi
+
+		tk_dll_base=${R_SRC_TCL_DIR}/Library/bin/tk${TCL_MAJOR_VERSION}${TCL_MINOR_VERSION}
+		tk_dll=${tk_dll_base}.dll
+		tk_tdll=${tk_dll_base}t.dll
+
+		if [[ ! -f ${tk_dll} ]] ; then
+		    if [[ -f ${tk_tdll} ]] ; then
+			cp ${tk_tdll} ${tk_dll}
+		    else
+			echo "WARNING: no ${tk_tdll}" >&2
+		    fi
+		fi
+	    )
+	;;
+    esac
     # In essence, we want everything from MSYS2-land up a couple of
     # directories, deleting any conda artifacts.
     mv ${R_SRC_TCL_DIR}/Library/${pkg_install_base}* ${R_SRC_TCL_DIR}/ || exit 1
@@ -468,17 +500,14 @@ Mingw_w64_WBI() {
 
     # LOCAL_SOFT defaults to the location of ${CC}, see MkRules.rules,
     # but we want it such that for the packages in defaults
-    # -I"${LOCAL_SOFT}"/include expands to -I/include and
-    # -L${LOCAL_SOFT}/lib/x64 finds the DLLs (where we copied them
-    # from /bin in bld.bat).
+    # -I"${LOCAL_SOFT}"/include expands to -I/include
     #
     # Beware using ${LIBRARY_PREFIX}/bin for anything as that *may* be
     # hidden by MSYS2 mounting /usr/bin over /bin.
     #
     # Note further, that LOCAL_SOFT = <empty>, although it notionally
     # generates the same effect, /include etc., isn't always thrown
-    # through the remapping process and gcc won't see the DLLs in
-    # -L/lib/x64.
+    # through the remapping process
 
     # EXT_LIBS ?= ${LOCAL_SOFT} (MkRules.rules) and
     # src/main/Makefile.win uses dounzip-CPPFLAGS =
@@ -519,10 +548,6 @@ CURL_PATH =
 # CURL_LIBS ?= -lcurl -lbcrypt -lzstd -lrtmp -lssl -lssh2 -lgcrypt -lcrypto -lgdi32 -lz -lws2_32 -lgdi32 -lcrypt32 -lidn2 -lunistring -liconv -lgpg-error -lwldap32 -lwinmm
 CURL_LIBS = -L/bin -lcurl -lbcrypt -lzstd -lssl-3-x64 -lssh2 -lcrypto-3-x64 -lgdi32 -lz -lws2_32 -lgdi32 -lcrypt32 -lidn2 -lunistring -liconv -lwldap32 -lwinmm
 EOF
-
-    # During a build (under MSYS2) we still need to find the conda
-    # packages from defaults DLLs, use the copy we made in bld.bat
-    PATH=${PATH}:${LIBRARY_PREFIX}/lib/x64
 
     # src/gnuwin32/Makefile notes that vignettes must come after
     # recommended (even though many of recommended is now split into
