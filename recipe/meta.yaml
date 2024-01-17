@@ -96,7 +96,6 @@ requirements:
     - {{native}}xz                       # [win]
     - {{native}}pcre                     # [win]
     - {{native}}icu                      # [win]
-    - {{native}}tk                       # [win]
     - {{native}}libpng                   # [win]
     - {{native}}libjpeg-turbo            # [win]
     - {{native}}bzip2                    # [win]
@@ -168,7 +167,6 @@ requirements:
     - {{native}}tktable
     - {{native}}libpng                   # [win]
     - {{native}}pcre                     # [win]
-    - {{native}}tk                       # [win]
     - {{native}}zlib                     # [win]
     - {{native}}libtiff                  # [win]
     - {{msystem}}openblas                # [win]
@@ -185,6 +183,8 @@ test:
     - R -e 'print(.Platform$dynlib.ext)' # [win]
     - R -e "library('tcltk')"            # [linux]
     - R -e \"library('tcltk')\""         # [win]
+    - R -e \"library('tcltk')\" -e \"tclRequire('Tktable')\"         # [win]
+    - R -e \"library('tcltk')\" -e \"tclRequire('BWidget')\"         # [win]
     - Rscript --version
     - Rscript -e  'cat("ok\\n")'
     # Report on the optional features compiled into this build of R.
