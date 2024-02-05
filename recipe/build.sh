@@ -535,7 +535,7 @@ Mingw_w64_WBI() {
 
     cat <<EOF > MkRules.local
 
-LOCAL_SOFT = ${LIBRARY_PREFIX}
+LOCAL_SOFT = \${LIBRARY_PREFIX}
 
 EXT_LIBS =
 
@@ -647,6 +647,21 @@ EOF
     # work since R will append lib/$(R_ARCH) to this in various
     # Makefiles. So long as we set build/merge_build_host then they
     # will get found automatically)
+
+    # Ugh!  (GNU) sed will process backslash escape sequences in
+    # substitution strings, see
+    # https://www.gnu.org/software/sed/manual/sed.html#The-_0022s_0022-Command,
+    # which means that for ${LIBRARY_PREFIX}, the \U in
+    # C:\Users\... turns it into C:SERS... -- which isn't great.  You
+    # can disable this GNU extention but we're still at risk of
+    # "normal" backslash escape sequences, such as the \t in
+    # here\there, sneaking in (and here causing word expansion!).
+    #
+    # We can fix it either way with one of the old Bash parameter
+    # expansion favourites: ${parameter//\\/\\\\} but then we hit
+    # problems with C:\path\to\Library/include (mix of \ and /) not
+    # finding any headers.
+    uLP=$(cygpath -u ${LIBRARY_PREFIX})
     for _makeconf in $(find "${PREFIX}"/lib/R -name Makeconf); do
 	# For SystemDependencies the host prefix is good.
 	#
@@ -655,7 +670,7 @@ EOF
 	# etc. which doesn't take kindly to being a PATH (rather than
 	# a dir).  Just replace the old value -- it was to do with
 	# RTOOLS.
-	sed -i "s|LOCAL_SOFT = .*$|LOCAL_SOFT = ${LIBRARY_PREFIX}|g" ${_makeconf}
+	sed -i "s|LOCAL_SOFT = .*$|LOCAL_SOFT = ${uLP}|g" ${_makeconf}
 	sed -i "s|^BINPREF ?= .*$|BINPREF ?= \$(R_HOME)/../../Library/${pkg_install_base}bin/|g" ${_makeconf}
 
 	# For compilers it is not, since they're put in the build
