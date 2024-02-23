@@ -661,7 +661,11 @@ EOF
     # expansion favourites: ${parameter//\\/\\\\} but then we hit
     # problems with C:\path\to\Library/include (mix of \ and /) not
     # finding any headers.
-    uLP=$(cygpath -u ${LIBRARY_PREFIX})
+    #
+    # Also, in this particular case, cygpath -u ${LIBRARY_PREFIX} will
+    # return /, which isn't as helpful as we'd hope when passing
+    # things to gcc: -I//include, etc..
+    mLP=$(cygpath -m ${LIBRARY_PREFIX})
     for _makeconf in $(find "${PREFIX}"/lib/R -name Makeconf); do
 	# For SystemDependencies the host prefix is good.
 	#
@@ -670,7 +674,7 @@ EOF
 	# etc. which doesn't take kindly to being a PATH (rather than
 	# a dir).  Just replace the old value -- it was to do with
 	# RTOOLS.
-	sed -i "s|LOCAL_SOFT = .*$|LOCAL_SOFT = ${uLP}|g" ${_makeconf}
+	sed -i "s|LOCAL_SOFT = .*$|LOCAL_SOFT = ${mLP}|g" ${_makeconf}
 	sed -i "s|^BINPREF ?= .*$|BINPREF ?= \$(R_HOME)/../../Library/${pkg_install_base}bin/|g" ${_makeconf}
 
 	# For compilers it is not, since they're put in the build
