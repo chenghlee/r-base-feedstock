@@ -104,7 +104,7 @@ requirements:
     - {{native}}mpfr                     # [win]
     - {{native}}fftw                     # [win]
     - {{native}}libtiff                  # [win]
-    - {{msystem}}libsndfile              # [win]
+    #- {{msystem}}libsndfile              # [win]
     - {{native}}zlib                     # [win]
     - {{msystem}}openblas                # [win]
     - {{msystem}}tools-git               # [win]
@@ -130,7 +130,7 @@ requirements:
     - {{native}}glib                     # [linux]
     - {{native}}fftw                     # [win]
     - {{native}}mpfr                     # [win]
-    - {{msystem}}libsndfile              # [win]
+    #- {{msystem}}libsndfile              # [win]
     - {{native}}bwidget
     - {{native}}tktable
     - {{native}}pango                    # [not win]
@@ -162,7 +162,8 @@ requirements:
     - {{native}}fftw                     # [win]
     - {{native}}xz                       # [win]
     - {{native}}mpfr                     # [win]
-    - {{msystem}}libsndfile              # [win]
+    #- {{msystem}}libsndfile              # [win] -- {{msystem}}zlib is used by the build
+    - {{msystem}}zlib                    # [win]
     - {{native}}bwidget
     - {{native}}tktable
     - {{native}}libpng                   # [win]
