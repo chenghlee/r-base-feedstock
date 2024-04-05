@@ -181,19 +181,20 @@ test:
     - R --version
     - R -e "print(.Platform\$dynlib.ext)" # [not win]
     # windows: Error: unexpected '\\' in "print(.Platform\"
-    - R -e 'print(.Platform$dynlib.ext)' # [win]
+    - R -e print(.Platform$dynlib.ext)   # [win]
     - R -e "library('tcltk')"            # [linux]
-    - R -e \"library('tcltk')\""         # [win]
-    - R -e \"library('tcltk')\" -e \"tclRequire('Tktable')\"         # [win]
-    - R -e \"library('tcltk')\" -e \"tclRequire('BWidget')\"         # [win]
+    - R -e library('tcltk')              # [win]
+    - R -e library('tcltk') -e tclRequire('Tktable')         # [win]
+    - R -e library('tcltk') -e tclRequire('BWidget')         # [win]
     - Rscript --version
-    - Rscript -e  'cat("ok\\n")'
+    - Rscript -e  'cat("ok\\n")'         # [not win]
+    - Rscript -e  cat('ok\n')            # [win]
     # Report on the optional features compiled into this build of R.
     - R -e "capabilities()"              # [not win]
-    - R -e \"capabilities()\""           # [win]
+    - R -e capabilities()                # [win]
     # Show third-party graphics software available
     - R -e "grSoftVersion()"             # [not win]
-    - R -e \"grSoftVersion()\""          # [win]
+    - R -e grSoftVersion()               # [win]
     # TODO does not work on windows, because winCairo.dll is missing
     - Rscript test-svg.R                 # [not win]
     - open                               # [win]
