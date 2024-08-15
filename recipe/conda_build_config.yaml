@@ -6,9 +6,11 @@ glib:
   - 2.63
   #- 2.56
 gsl:
-  - 2.4
+  - 2.4       # [not win]
+  - 2.1       # [win]
 icu:
-  - 58.2
+  - 58.2      # [not win]
+  - 58.2      # [win]
 jpeg:
   - 9b
 krb5:
@@ -17,23 +19,27 @@ krb5:
 libcurl:
   - 7.62.0
 libpng:
-  - 1.6.37
+  - 1.6.37    # [not win]
+  - 1.6.21    # [win]
 libssh2:
   - 1.8.2
 libtiff:
   - 4.0.10
 libxml2:
-  - 2.9.9
+  - 2.9.9     # [not win]
+  - 2.9.3     # [win]
 ncurses:
   - 6.1
 pango:
   - 1.42.4
 pcre:
-  - 8.43
+  - 8.43      # [not win]
+  - 8.38      # [win]
 readline:
   - 8.0
   #- 7.0
 tk:
-  - 8.6.8
+  - 8.6.8     # [not win]
+  - 8.6.5     # [win]
 xz:
   - 5.2.4

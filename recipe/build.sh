@@ -290,60 +290,6 @@ Mingw_w64_makefiles() {
         fi
     fi
 
-    # Horrible. We need MiKTeX or something like it (for pdflatex.exe. Building from source
-    # may be possible but requires CLisp and I've not got time for that at present).  w32tex
-    # looks a little less horrible than MiKTex (just read their build instructions and cry:
-    # For  example:
-    # Cygwin
-    # Hint: install all packages, or be prepared to install missing packages later, when
-    #       CMake fails to find them...
-    # So, let's try with standard w32tex instead: http://w32tex.org/
-
-    # W32TeX doesn't have inconsolata.sty which is
-    # needed for R 3.2.4 (later Rs have switched to zi4
-    # instead), I've switched to miktex instead.
-    if [[ "${_use_w32tex}" == "yes" ]]; then
-      mkdir w32tex || true
-        pushd w32tex
-        curl -C - -o ${DLCACHE}/texinst2016.zip -SLO http://ctan.ijs.si/mirror/w32tex/current/texinst2016.zip
-        unzip -o ${DLCACHE}/texinst2016.zip
-        mkdir archives || true
-          pushd archives
-            for _file in latex mftools platex pdftex-w32 ptex-w32 web2c-lib web2c-w32 \
-                         datetime2 dvipdfm-w32 dvipsk-w32 jtex-w32 ltxpkgs luatexja \
-                         luatex-w32 makeindex-w32 manual newtxpx-boondoxfonts pgfcontrib \
-                         t1fonts tex-gyre timesnew ttf2pk-w32 txpx-pazofonts vf-a2bk \
-                         xetex-w32 xindy-w32 xypic; do
-              curl -C - -o ${DLCACHE}/${_file}.tar.xz -SLO http://ctan.ijs.si/mirror/w32tex/current/${_file}.tar.xz
-            done
-          popd
-        ./texinst2016.exe ${PWD}/archives
-        ls -l ./texinst2016.exe
-        mount
-        PATH=${PWD}/bin:${PATH}
-      popd
-    else
-      mkdir miktex || true
-      pushd miktex
-      MIKTEX_VER=2.9.6942
-      # Fetch e.g.:
-      # http://ctan.mines-albi.fr/systems/win32/miktex/tm/packages/url.tar.lzma
-      # http://ctan.mines-albi.fr/systems/win32/miktex/tm/packages/mptopdf.tar.lzma
-      # http://ctan.mines-albi.fr/systems/win32/miktex/tm/packages/inconsolata.tar.lzma
-        curl --insecure -C - -o ${DLCACHE}/miktex-portable-${MIKTEX_VER}.exe -SLO https://miktex.org/download/ctan/systems/win32/miktex/setup/windows-x86/miktex-portable-${MIKTEX_VER}.exe || true
-        echo "Extracting miktex-portable-${MIKTEX_VER}.exe, this will take some time ..."
-        7za x -y ${DLCACHE}/miktex-portable-${MIKTEX_VER}.exe > /dev/null || exit 1
-        # We also need the url, incolsolata and mptopdf packages and
-        # do not want a GUI to prompt us about installing these.
-        # sed -i 's|AutoInstall=2|AutoInstall=1|g' miktex/config/miktex.ini
-        #see also: http://tex.stackexchange.com/q/302679
-        PATH=${PWD}/texmfs/install/miktex/bin:${PATH}
-        initexmf.exe --set-config-value [MPM]AutoInstall=1
-        initexmf.exe --update-fndb
-        cat texmfs/config/miktex/config/miktex.ini
-      popd
-    fi
-
     # R_ARCH looks like an absolute path (e.g. "/x64"), so MSYS2 will convert it.
     # We need to prevent that from happening.
     export MSYS2_ARG_CONV_EXCL="R_ARCH"

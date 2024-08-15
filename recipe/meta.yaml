@@ -28,9 +28,10 @@ source:
     - 0016-Mimic-OpenBLAS-when-making-reference-Rblas-and-Rlapa.patch
     - 0017-Foribly-remove-then-forcibly-mv-in-javareconf.in.patch
     - 0018-Use-LAPACK_LDFLAGS-in-Rlapack_la_LIBADD.patch
+    - 0020-Fix-CVE-2024-27322.patch
 
 build:
-  number: 2
+  number: 3
   rpaths:
     - lib/R/lib/
     - lib/
@@ -83,6 +84,7 @@ requirements:
     - m2-p7zip                           # [win]
     - m2-patch                           # [win]
     - patch                              # [not win]
+    - miktex                             # [win]
     - texlive-core                       # [unix]
     - {{posix}}autoconf
     - {{posix}}automake-wrapper          # [win]
